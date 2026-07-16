@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة الشحنات</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Cairo', 'ui-sans-serif', 'system-ui', 'sans-serif'] },
+          colors: {
+            primary: { DEFAULT: '#0ea5e9', hover: '#0284c7' },
+            'bg-main': 'var(--bg-main)',
+            'bg-surface': 'var(--bg-surface)',
+            'text-main': 'var(--text-main)',
+            'text-muted': 'var(--text-muted)',
+            'border-subtle': 'var(--border-subtle)',
+            'border-strong': 'var(--border-strong)',
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="bg-gray-900 text-gray-100 font-sans antialiased min-h-screen">
+  <div id="root"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bcryptjs@3/dist/bcrypt.min.js"></script>
+
+
+  <script src="js/01-config.js"></script>
+  <script src="js/02-utils.js"></script>
+  <script src="js/03-toast.js"></script>
+  <script src="js/04-supabase-service.js"></script>
+  <script src="js/05-auth.js"></script>
+  <script src="js/06-theme.js"></script>
+  <script src="js/07-router.js"></script>
+  <script src="js/08-icons.js"></script>
+  <script src="js/09-page-login.js"></script>
+  <script src="js/10a-dashboard-core.js"></script>
+  <script src="js/10b-dashboard-admin.js"></script>
+  <script src="js/10c-dashboard-rep.js"></script>
+  <script src="js/11-page-dev-settings.js"></script>
+  <script src="js/12-init.js"></script>
+</body>
+</html>
