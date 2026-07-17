@@ -17,8 +17,8 @@
   function getConfig() {
     const storedUrl = localStorage.getItem('dev_supabase_url');
     const storedKey = localStorage.getItem('dev_supabase_key');
-    const envUrl = 'https://evrqxgnqwngokukqerps.supabase.co';
-    const envKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV2cnF4Z25xd25nb2t1a3FlcnBzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5ODE3NjgsImV4cCI6MjA5MjU1Nzc2OH0.2Ym96D5j5iuTZ43rdxlZk8EMu6Pyg4XfX2NOdMhqqr4';
+    const envUrl = 'https://iodyohssotttmbrapgbk.supabase.co';
+    const envKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlvZHlvaHNzb3R0dG1icmFwZ2JrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQyMDQ0NTUsImV4cCI6MjA5OTc4MDQ1NX0.ShnO651T3bZeov86r1XsymT-Q5JE454SX_yD01WQvZ4';
     return {
       url: storedUrl ? decode(storedUrl) : envUrl,
       key: storedKey ? decode(storedKey) : envKey,
