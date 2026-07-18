@@ -1230,6 +1230,11 @@
             color: #6b7280;
         }
 
+        .housing-status-text.status-empty {
+            color: #94a3b8;
+            font-style: italic;
+        }
+
         [data-bs-theme="dark"] .housing-status-text {
             color: #e2e8f0;
         }
@@ -1256,6 +1261,11 @@
 
         [data-bs-theme="dark"] .housing-status-text.status-mjash {
             color: #cbd5e1;
+        }
+
+        [data-bs-theme="dark"] .housing-status-text.status-empty {
+            color: #64748b;
+            font-style: italic;
         }
 
         .scanner-card {
@@ -4464,23 +4474,7 @@
                 await syncGpsEnforcementStateFromUsers();
                 applyRoleAccess();
                 // ملء قائمة اليوميات في كلا التبويبين بالقيم المتاحة دون جلب الشحنات
-                const statsSelect = document.getElementById('filterDate');
-                const housingSelect = document.getElementById('housingEditDateFilterSelect');
-                const dailyOpt = (d) => {
-                    const isArchived = archivedDailySet && archivedDailySet.has(d);
-                    const style = isArchived ? ' style="color:#dc2626;font-weight:bold;"' : '';
-                    return `<option value="${escapeAttr(d)}"${style}>${escapeHtml(d)}</option>`;
-                };
-                if (statsSelect) {
-                    statsSelect.innerHTML = '<option value="">--- اختر اليومية ---</option>' +
-                        availableDailyValues.map(dailyOpt).join('');
-                    statsSelect.value = '';
-                }
-                if (housingSelect) {
-                    housingSelect.innerHTML = '<option value="">--- اختر اليومية ---</option>' +
-                        availableDailyValues.map(dailyOpt).join('');
-                    housingSelect.value = '';
-                }
+                _populateDailySelects();
                 restoreHousingUiState();
                 populateQrRepList();
                 const savedDaily = getHousingEditDateFilters()[0] || '';
@@ -4791,6 +4785,26 @@
                     archivedDailySet.add(d);
                 }
             });
+        }
+
+        function _populateDailySelects() {
+            const statsSelect = document.getElementById('filterDate');
+            const housingSelect = document.getElementById('housingEditDateFilterSelect');
+            const dailyOpt = (d) => {
+                const isArchived = archivedDailySet && archivedDailySet.has(d);
+                const style = isArchived ? ' style="color:#dc2626;font-weight:bold;"' : '';
+                return `<option value="${escapeAttr(d)}"${style}>${escapeHtml(d)}</option>`;
+            };
+            if (statsSelect) {
+                const prevValue = statsSelect.value;
+                statsSelect.innerHTML = '<option value="">--- اختر اليومية ---</option>' + availableDailyValues.map(dailyOpt).join('');
+                statsSelect.value = availableDailyValues.includes(prevValue) ? prevValue : '';
+            }
+            if (housingSelect) {
+                const prevValue = housingSelect.value;
+                housingSelect.innerHTML = '<option value="">--- اختر اليومية ---</option>' + availableDailyValues.map(dailyOpt).join('');
+                housingSelect.value = availableDailyValues.includes(prevValue) ? prevValue : '';
+            }
         }
 
         async function fetchUsers() {
@@ -8292,8 +8306,18 @@
                     } finally {
                         window.housingWriteOperationActive = false;
                         Swal.close();
-                        if (currentDailyFilter) await fetchShipments(currentDailyFilter);
-                        refreshDashboard();
+                        showLoading(true);
+                        try {
+                            await fetchAvailableDailyValues();
+                            _populateDailySelects();
+                            if (currentDailyFilter) await fetchShipments(currentDailyFilter);
+                            housingDataVersion++;
+                            housingDisplayDataCache.clear();
+                            housingFilteredResultsCache.clear();
+                        } finally {
+                            refreshDashboard();
+                            showLoading(false);
+                        }
                     }
                 };
                 reader.onerror = () => {
@@ -8670,6 +8694,9 @@
 
         function getHousingStatusTextClass(status) {
             const normalizedStatus = String(status || '').trim();
+            if (normalizedStatus === 'فارغ') {
+                return 'status-empty';
+            }
             if (!normalizedStatus || normalizedStatus === 'قيد' || normalizedStatus === 'قيد التنفيذ' || normalizedStatus === 'قيد التوصيل' || normalizedStatus === 'pending') {
                 return 'status-pending';
             }
@@ -8763,7 +8790,8 @@
                     }
                 }
                 if (!excludeFields.includes('status') && filters.statuses.length > 0) {
-                    if (!filters.statuses.includes(String(d.الحالة || '').trim())) return false;
+                    const _st = String(d.الحالة || '').trim();
+                    if (!filters.statuses.includes(_st) && !(filters.statuses.includes('فارغ') && !_st)) return false;
                 }
                 if (!excludeFields.includes('rep') && filters.reps.length > 0) {
                     if (!filters.reps.includes(String(d.المندوب || '').trim())) return false;
@@ -8837,8 +8865,11 @@
 
             const selected = new Set(getHousingStatusFilters());
             const baseShipments = getHousingShipmentsFilteredBy(['status']);
-            const statuses = [...new Set(baseShipments.map(s => String(s.الحالة || '').trim()).filter(Boolean))]
+            const allStatuses = baseShipments.map(s => String(s.الحالة || '').trim());
+            const emptyCount = allStatuses.filter(v => !v).length;
+            const statuses = [...new Set(allStatuses.filter(Boolean))]
                 .sort((a, b) => a.localeCompare(b));
+            if (emptyCount > 0) statuses.unshift('فارغ');
 
             if (!statuses.length) {
                 list.innerHTML = `<div class="text-center text-secondary small fw-bold py-2">لا توجد قيم</div>`;
@@ -8855,6 +8886,7 @@
                     const val = String(data.الحالة || '').trim();
                     if (val) counts[val] = (counts[val] || 0) + 1;
                 });
+                if (emptyCount > 0) counts['فارغ'] = emptyCount;
             }
 
             list.innerHTML = statuses.map(status => {
@@ -9073,7 +9105,7 @@
                 );
                 const matchesColumns =
                     matchesEditDate &&
-                    (!filters.statuses.length || filters.statuses.includes(String(currentData.الحالة || '').trim())) &&
+                    (!filters.statuses.length || filters.statuses.includes(String(currentData.الحالة || '').trim()) || (filters.statuses.includes('فارغ') && !String(currentData.الحالة || '').trim())) &&
                     (!filters.reps.length || filters.reps.includes(String(currentData.المندوب || '').trim())) &&
                     (!filters.senders.length || filters.senders.includes(String(currentData.الراسل || '').trim())) &&
                     (!filters.name || String(currentData.اسم_العميل || '').toLowerCase().includes(filters.name)) &&
@@ -9877,7 +9909,7 @@
             let doneCount = 0, shippingCount = 0, amendedCount = 0, rejectedCount = 0, postponedCount = 0;
             let mjashCount = 0, inDeliveryCount = 0;
             let doneTotalPrice = 0, amendedTotalPrice = 0, shippingTotalPrice = 0;
-            let totalAmount = 0, grossAmount = 0, totalCommission = 0, shippingCostTotal = 0;
+            let totalAmount = 0, grossAmount = 0, totalCommission = 0, shippingCostTotal = 0, safiGross = 0;
             const phoneFreq = {};
             let duplicatePhoneCount = 0;
 
@@ -9919,6 +9951,9 @@
                 const shippingCost = parseFloat(String(d.الشحن || '0').replace(/[^0-9.-]+/g, '')) || 0;
                 grossAmount += parseFloat(String(d.المبلغ || '0').replace(/[^0-9.-]+/g, '')) || 0;
                 shippingCostTotal += shippingCost;
+                if (status === 'تم' || status === 'تعديل سعر') {
+                    safiGross += price;
+                }
             }
 
             for (let i = 0; i < shipments.length; i++) {
@@ -9929,7 +9964,7 @@
                     duplicatePhoneCount++;
                 }
             }
-            let safiTotal = totalAmount - shippingCostTotal;
+            let safiTotal = safiGross - shippingCostTotal;
             const netAmountAfterCommission = totalAmount - totalCommission;
             const pendingCount = amendedCount + shippingCount + rejectedCount + postponedCount + inDeliveryCount;
             const commissionCount = doneCount + amendedCount + shippingCount;
@@ -11446,14 +11481,6 @@
 
                 if (error) throw error;
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم التحويل للمخزن',
-                    text: `تم تحويل ${selectedIds.length} شحنة بنجاح.`,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-
                 // Update local data
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
@@ -11469,15 +11496,32 @@
                 const selectAll = document.getElementById('housingSelectAll');
                 if (selectAll) selectAll.checked = false;
 
-                refreshDashboard();
+                try {
+                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                    if (dailyVal) await fetchShipments(dailyVal);
+                    housingDataVersion++;
+                    housingDisplayDataCache.clear();
+                    housingFilteredResultsCache.clear();
+                } finally {
+                    refreshDashboard();
+                    showLoading(false);
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التحويل للمخزن',
+                    text: `تم تحويل ${selectedIds.length} شحنة بنجاح.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
 
             } catch (err) {
                 console.error("Move To Warehouse Error:", err);
                 housingUndoStack.pop();
                 updateHousingUndoButtonState();
                 Swal.fire('خطأ في العملية', 'فشل التحويل: ' + err.message, 'error');
+                showLoading(false);
             }
-            showLoading(false);
         }
 
         async function archiveSelectedHousingShipments() {
@@ -11588,7 +11632,18 @@
                         if (selectAll) selectAll.checked = false;
                         updateHousingRowSelection();
                         markHousingDataChanged();
-                        refreshDashboard();
+
+                        showLoading(true);
+                        try {
+                            const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                            if (dailyVal) await fetchShipments(dailyVal);
+                            housingDataVersion++;
+                            housingDisplayDataCache.clear();
+                            housingFilteredResultsCache.clear();
+                        } finally {
+                            refreshDashboard();
+                            showLoading(false);
+                        }
 
                         if (unarchFail > 0) {
                             Swal.fire({ icon: 'warning', title: 'تمت الاستعادة جزئياً', text: `تم استعادة ${unarchSuccess} شحنة، وفشلت ${unarchFail} شحنة.` });
@@ -11676,7 +11731,18 @@
                     if (selectAll) selectAll.checked = false;
                     updateHousingRowSelection();
                     markHousingDataChanged();
-                    refreshDashboard();
+
+                    showLoading(true);
+                    try {
+                        const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                        if (dailyVal) await fetchShipments(dailyVal);
+                        housingDataVersion++;
+                        housingDisplayDataCache.clear();
+                        housingFilteredResultsCache.clear();
+                    } finally {
+                        refreshDashboard();
+                        showLoading(false);
+                    }
 
                     if (archFail > 0) {
                         Swal.fire({ icon: 'warning', title: 'تمت الأرشفة جزئياً', text: `تمت أرشفة ${archSuccess} شحنة، وفشلت ${archFail} شحنة.` });
@@ -11742,14 +11808,6 @@
 
                 if (error) throw error;
 
-                Swal.fire({
-                    icon: 'success',
-                    title: 'تم التحديث بنجاح',
-                    text: `تم تغيير حالة ${selectedIds.length} شحنة إلى "قيد التوصيل" بنجاح.`,
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-
                 // Update local data
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
@@ -11765,15 +11823,32 @@
                 const selectAll = document.getElementById('housingSelectAll');
                 if (selectAll) selectAll.checked = false;
 
-                refreshDashboard();
+                try {
+                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                    if (dailyVal) await fetchShipments(dailyVal);
+                    housingDataVersion++;
+                    housingDisplayDataCache.clear();
+                    housingFilteredResultsCache.clear();
+                } finally {
+                    refreshDashboard();
+                    showLoading(false);
+                }
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'تم التحديث بنجاح',
+                    text: `تم تغيير حالة ${selectedIds.length} شحنة إلى "قيد التوصيل" بنجاح.`,
+                    timer: 2000,
+                    showConfirmButton: false
+                });
 
             } catch (err) {
                 console.error("Move To In-Delivery Error:", err);
                 housingUndoStack.pop();
                 updateHousingUndoButtonState();
                 Swal.fire('خطأ في العملية', 'فشل التحديث: ' + err.message, 'error');
+                showLoading(false);
             }
-            showLoading(false);
         }
 
         async function deleteSelectedHousingShipments() {
@@ -11854,6 +11929,20 @@
                 const afterCount = allShipments.length;
                 const actuallyFiltered = beforeCount - afterCount;
 
+                housingSelectedIds.clear();
+                markHousingDataChanged();
+
+                try {
+                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                    if (dailyVal) await fetchShipments(dailyVal);
+                    housingDataVersion++;
+                    housingDisplayDataCache.clear();
+                    housingFilteredResultsCache.clear();
+                } finally {
+                    refreshDashboard();
+                    showLoading(false);
+                }
+
                 Swal.fire({
                     icon: actuallyFiltered > 0 ? 'success' : 'warning',
                     title: actuallyFiltered > 0 ? 'تم الحذف بنجاح' : 'تنبيه: تم الحذف من السيرفر فقط',
@@ -11863,10 +11952,6 @@
                     timer: 5000,
                     showConfirmButton: true
                 });
-
-                housingSelectedIds.clear();
-                markHousingDataChanged();
-                refreshDashboard();
 
             } catch (err) {
                 console.error("Delete Selected Error:", err);
@@ -12541,13 +12626,27 @@
             const counts = {};
 
             const baseShipments = getHousingSidebarBaseShipments();
-            values = [...new Set(baseShipments.map(s => getHousingSidebarShipmentValue(s, prop)).filter(Boolean))];
-            values.sort((a, b) => a.localeCompare(b));
-            if (search) values = values.filter(v => v.toLowerCase().includes(search));
-            baseShipments.forEach(s => {
-                const val = getHousingSidebarShipmentValue(s, prop);
-                if (val) counts[val] = (counts[val] || 0) + 1;
-            });
+            if (prop === 'status') {
+                const allVals = baseShipments.map(s => getHousingSidebarShipmentValue(s, prop));
+                const emptyCount = allVals.filter(v => !v).length;
+                values = [...new Set(allVals.filter(Boolean))];
+                values.sort((a, b) => a.localeCompare(b));
+                if (emptyCount > 0) values.unshift('فارغ');
+                if (search) values = values.filter(v => v.toLowerCase().includes(search));
+                baseShipments.forEach(s => {
+                    const val = getHousingSidebarShipmentValue(s, prop);
+                    if (val) counts[val] = (counts[val] || 0) + 1;
+                });
+                if (emptyCount > 0) counts['فارغ'] = emptyCount;
+            } else {
+                values = [...new Set(baseShipments.map(s => getHousingSidebarShipmentValue(s, prop)).filter(Boolean))];
+                values.sort((a, b) => a.localeCompare(b));
+                if (search) values = values.filter(v => v.toLowerCase().includes(search));
+                baseShipments.forEach(s => {
+                    const val = getHousingSidebarShipmentValue(s, prop);
+                    if (val) counts[val] = (counts[val] || 0) + 1;
+                });
+            }
 
             if (!values.length) {
                 list.innerHTML = '<div class="text-center text-secondary small fw-bold py-4">لا توجد نتائج</div>';
