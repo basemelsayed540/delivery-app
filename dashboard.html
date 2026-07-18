@@ -7972,7 +7972,24 @@
             // Reset input
             event.target.value = '';
 
-            showLoading(true);
+            Swal.fire({
+                title: 'جاري فتح ومعالجة الملف...',
+                html: `
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="parse-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-3 fs-6 fw-bold" id="parse-progress-text">جاري قراءة الملف...</div>
+                    <div class="small text-muted mt-1" id="parse-progress-count"></div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            const parseProgressBar = document.getElementById('parse-progress-bar');
+            const parseProgressText = document.getElementById('parse-progress-text');
+            const parseProgressCount = document.getElementById('parse-progress-count');
+
             try {
                 const reader = new FileReader();
                 reader.onload = async (e) => {
@@ -7981,9 +7998,12 @@
                     const sheet = workbook.Sheets['Sheet1'] || workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
 
+                    if (parseProgressBar) parseProgressBar.style.width = '20%';
+                    if (parseProgressText) parseProgressText.innerText = 'جاري تحليل بيانات الملف...';
+
                     if (!rows.length) {
+                        Swal.close();
                         Swal.fire('خطأ', 'الملف المختار فارغ!', 'error');
-                        showLoading(false);
                         return;
                     }
 
@@ -8045,8 +8065,8 @@
 
                     const orderIdIndex = columnKeysByIndex.findIndex(key => key === 'كود الشحنة');
                     if (orderIdIndex === -1) {
+                        Swal.close();
                         Swal.fire('خطأ', 'تعذر العثور على عمود "كود الشحنة" داخل الملف.', 'error');
-                        showLoading(false);
                         return;
                     }
 
@@ -8109,9 +8129,20 @@
                             unsupportedShipmentSchemaFields.forEach(f => delete payload[f]);
                         }
                         updates.push(payload);
+
+                        if (rowIndex % 300 === 0) {
+                            const pct = 20 + Math.round((rowIndex / rows.length) * 60);
+                            if (parseProgressBar) parseProgressBar.style.width = pct + '%';
+                            if (parseProgressText) parseProgressText.innerText = 'جاري معالجة الصفوف...';
+                            if (parseProgressCount) parseProgressCount.innerText = `${rowIndex} / ${rows.length - 1} صف`;
+                            await new Promise(resolve => setTimeout(resolve, 0));
+                        }
                     }
 
-                    showLoading(false);
+                    if (parseProgressBar) parseProgressBar.style.width = '100%';
+                    if (parseProgressText) parseProgressText.innerText = 'اكتمل التحليل';
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    Swal.close();
 
                     if (rowsWithoutCode > 0) {
                         const { isConfirmed: codeConfirm } = await Swal.fire({
@@ -11472,8 +11503,26 @@
             housingUndoStack.push({ label: `تحويل للمخزن لـ ${selectedIds.length} شحنة`, snapshots });
             updateHousingUndoButtonState();
 
-            showLoading(true);
+            Swal.fire({
+                title: 'جاري التحويل للمخزن...',
+                html: `
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="warehouse-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-warning" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-3 fs-6 fw-bold" id="warehouse-progress-text">جاري بدء العملية...</div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            const whProgressBar = document.getElementById('warehouse-progress-bar');
+            const whProgressText = document.getElementById('warehouse-progress-text');
+
             try {
+                if (whProgressBar) whProgressBar.style.width = '20%';
+                if (whProgressText) whProgressText.innerText = `جاري تحويل ${selectedIds.length} شحنة في قاعدة البيانات...`;
+
                 const { error } = await supabaseClient
                     .from(CONFIG.TABLES.SHIPMENTS)
                     .update({ المندوب: 'مخزن' })
@@ -11481,7 +11530,9 @@
 
                 if (error) throw error;
 
-                // Update local data
+                if (whProgressBar) whProgressBar.style.width = '50%';
+                if (whProgressText) whProgressText.innerText = 'جاري تحديث البيانات المحلية...';
+
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
                         return { ...s, المندوب: 'مخزن' };
@@ -11490,22 +11541,22 @@
                 });
                 allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
                 markHousingDataChanged();
-                
-                // Clear selections
                 document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
                 const selectAll = document.getElementById('housingSelectAll');
                 if (selectAll) selectAll.checked = false;
 
-                try {
-                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
-                    if (dailyVal) await fetchShipments(dailyVal);
-                    housingDataVersion++;
-                    housingDisplayDataCache.clear();
-                    housingFilteredResultsCache.clear();
-                } finally {
-                    refreshDashboard();
-                    showLoading(false);
-                }
+                if (whProgressBar) whProgressBar.style.width = '75%';
+                if (whProgressText) whProgressText.innerText = 'جاري التأكد من قاعدة البيانات...';
+
+                const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                if (dailyVal) await fetchShipments(dailyVal);
+                housingDataVersion++;
+                housingDisplayDataCache.clear();
+                housingFilteredResultsCache.clear();
+
+                if (whProgressBar) whProgressBar.style.width = '100%';
+                refreshDashboard();
+                Swal.close();
 
                 Swal.fire({
                     icon: 'success',
@@ -11519,8 +11570,8 @@
                 console.error("Move To Warehouse Error:", err);
                 housingUndoStack.pop();
                 updateHousingUndoButtonState();
+                Swal.close();
                 Swal.fire('خطأ في العملية', 'فشل التحويل: ' + err.message, 'error');
-                showLoading(false);
             }
         }
 
@@ -11619,37 +11670,17 @@
                     if (unarchFail > 0 && unarchSuccess === 0) {
                         Swal.fire('خطأ', 'فشلت الاستعادة لجميع الشحنات.', 'error');
                     } else {
-                        allShipments = allShipments.map(s => {
-                            if (checkedIds.includes(getShipmentDatabaseId(s))) {
-                                return { ...s, ارشيف: '' };
-                            }
-                            return s;
+                        Swal.fire({
+                            icon: unarchFail > 0 ? 'warning' : 'success',
+                            title: unarchFail > 0 ? 'تمت الاستعادة جزئياً' : 'تمت الاستعادة بنجاح',
+                            text: unarchFail > 0
+                                ? `تم استعادة ${unarchSuccess} شحنة، وفشلت ${unarchFail} شحنة. جاري تحديث الصفحة...`
+                                : `تم استعادة ${unarchSuccess} شحنة من الأرشفة. جاري تحديث الصفحة...`,
+                            timer: 1200,
+                            showConfirmButton: false
                         });
-                        allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
-
-                        document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
-                        const selectAll = document.getElementById('housingSelectAll');
-                        if (selectAll) selectAll.checked = false;
-                        updateHousingRowSelection();
-                        markHousingDataChanged();
-
-                        showLoading(true);
-                        try {
-                            const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
-                            if (dailyVal) await fetchShipments(dailyVal);
-                            housingDataVersion++;
-                            housingDisplayDataCache.clear();
-                            housingFilteredResultsCache.clear();
-                        } finally {
-                            refreshDashboard();
-                            showLoading(false);
-                        }
-
-                        if (unarchFail > 0) {
-                            Swal.fire({ icon: 'warning', title: 'تمت الاستعادة جزئياً', text: `تم استعادة ${unarchSuccess} شحنة، وفشلت ${unarchFail} شحنة.` });
-                        } else {
-                            Swal.fire({ icon: 'success', title: 'تمت الاستعادة بنجاح', text: `تم استعادة ${unarchSuccess} شحنة من الأرشفة.`, timer: 2500, showConfirmButton: false });
-                        }
+                        await new Promise(resolve => setTimeout(resolve, 1200));
+                        location.reload();
                     }
                 } catch (err) {
                     console.error("Unarchive Error:", err);
@@ -11718,37 +11749,17 @@
                 if (archFail > 0 && archSuccess === 0) {
                     Swal.fire('خطأ', 'فشلت الأرشفة لجميع الشحنات.', 'error');
                 } else {
-                    allShipments = allShipments.map(s => {
-                        if (checkedIds.includes(getShipmentDatabaseId(s))) {
-                            return { ...s, ارشيف: archiveDate };
-                        }
-                        return s;
+                    Swal.fire({
+                        icon: archFail > 0 ? 'warning' : 'success',
+                        title: archFail > 0 ? 'تمت الأرشفة جزئياً' : 'تمت الأرشفة بنجاح',
+                        text: archFail > 0
+                            ? `تمت أرشفة ${archSuccess} شحنة، وفشلت ${archFail} شحنة. جاري تحديث الصفحة...`
+                            : `تمت أرشفة ${archSuccess} شحنة بتاريخ ${archiveDate}. جاري تحديث الصفحة...`,
+                        timer: 1200,
+                        showConfirmButton: false
                     });
-                    allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
-
-                    document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
-                    const selectAll = document.getElementById('housingSelectAll');
-                    if (selectAll) selectAll.checked = false;
-                    updateHousingRowSelection();
-                    markHousingDataChanged();
-
-                    showLoading(true);
-                    try {
-                        const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
-                        if (dailyVal) await fetchShipments(dailyVal);
-                        housingDataVersion++;
-                        housingDisplayDataCache.clear();
-                        housingFilteredResultsCache.clear();
-                    } finally {
-                        refreshDashboard();
-                        showLoading(false);
-                    }
-
-                    if (archFail > 0) {
-                        Swal.fire({ icon: 'warning', title: 'تمت الأرشفة جزئياً', text: `تمت أرشفة ${archSuccess} شحنة، وفشلت ${archFail} شحنة.` });
-                    } else {
-                        Swal.fire({ icon: 'success', title: 'تمت الأرشفة بنجاح', text: `تمت أرشفة ${archSuccess} شحنة بتاريخ ${archiveDate}.`, timer: 2500, showConfirmButton: false });
-                    }
+                    await new Promise(resolve => setTimeout(resolve, 1200));
+                    location.reload();
                 }
             } catch (err) {
                 console.error("Archive Selected Error:", err);
@@ -11799,8 +11810,26 @@
             housingUndoStack.push({ label: `تغيير الحالة لـ قيد التوصيل لـ ${selectedIds.length} شحنة`, snapshots });
             updateHousingUndoButtonState();
 
-            showLoading(true);
+            Swal.fire({
+                title: 'جاري التحويل لقيد التوصيل...',
+                html: `
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="delivery-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-info" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-3 fs-6 fw-bold" id="delivery-progress-text">جاري بدء العملية...</div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            const dlProgressBar = document.getElementById('delivery-progress-bar');
+            const dlProgressText = document.getElementById('delivery-progress-text');
+
             try {
+                if (dlProgressBar) dlProgressBar.style.width = '20%';
+                if (dlProgressText) dlProgressText.innerText = `جاري تغيير حالة ${selectedIds.length} شحنة في قاعدة البيانات...`;
+
                 const { error } = await supabaseClient
                     .from(CONFIG.TABLES.SHIPMENTS)
                     .update({ الحالة: 'قيد التوصيل', 'المدفوع': null, 'سبب الحالة': null })
@@ -11808,7 +11837,9 @@
 
                 if (error) throw error;
 
-                // Update local data
+                if (dlProgressBar) dlProgressBar.style.width = '50%';
+                if (dlProgressText) dlProgressText.innerText = 'جاري تحديث البيانات المحلية...';
+
                 allShipments = allShipments.map(s => {
                     if (selectedIds.includes(getShipmentDatabaseId(s))) {
                         return { ...s, الحالة: 'قيد التوصيل', 'المدفوع': null, 'سبب الحالة': null };
@@ -11817,22 +11848,22 @@
                 });
                 allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
                 markHousingDataChanged();
-                
-                // Clear selections
                 document.querySelectorAll('.housing-row-checkbox').forEach(cb => cb.checked = false);
                 const selectAll = document.getElementById('housingSelectAll');
                 if (selectAll) selectAll.checked = false;
 
-                try {
-                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
-                    if (dailyVal) await fetchShipments(dailyVal);
-                    housingDataVersion++;
-                    housingDisplayDataCache.clear();
-                    housingFilteredResultsCache.clear();
-                } finally {
-                    refreshDashboard();
-                    showLoading(false);
-                }
+                if (dlProgressBar) dlProgressBar.style.width = '75%';
+                if (dlProgressText) dlProgressText.innerText = 'جاري التأكد من قاعدة البيانات...';
+
+                const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
+                if (dailyVal) await fetchShipments(dailyVal);
+                housingDataVersion++;
+                housingDisplayDataCache.clear();
+                housingFilteredResultsCache.clear();
+
+                if (dlProgressBar) dlProgressBar.style.width = '100%';
+                refreshDashboard();
+                Swal.close();
 
                 Swal.fire({
                     icon: 'success',
@@ -11846,8 +11877,8 @@
                 console.error("Move To In-Delivery Error:", err);
                 housingUndoStack.pop();
                 updateHousingUndoButtonState();
+                Swal.close();
                 Swal.fire('خطأ في العملية', 'فشل التحديث: ' + err.message, 'error');
-                showLoading(false);
             }
         }
 
@@ -11910,8 +11941,26 @@
 
             if (!password) return;
 
-            showLoading(true);
+            Swal.fire({
+                title: 'جاري الحذف...',
+                html: `
+                    <div class="progress mt-3" style="height: 20px;">
+                        <div id="delete-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" role="progressbar" style="width: 0%"></div>
+                    </div>
+                    <div class="mt-3 fs-6 fw-bold" id="delete-progress-text">جاري بدء الحذف...</div>
+                `,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+            const delProgressBar = document.getElementById('delete-progress-bar');
+            const delProgressText = document.getElementById('delete-progress-text');
+
             try {
+                if (delProgressBar) delProgressBar.style.width = '20%';
+                if (delProgressText) delProgressText.innerText = `جاري حذف ${targetIds.length} شحنة من قاعدة البيانات...`;
+
                 const { error } = await supabaseClient
                     .from(CONFIG.TABLES.SHIPMENTS)
                     .delete()
@@ -11919,45 +11968,17 @@
 
                 if (error) throw error;
 
-                const beforeCount = allShipments.length;
-                allShipments = allShipments.filter(s => {
-                    const shipmentDbId = getShipmentDatabaseId(s);
-                    const shipmentCode = String(s['كود الشحنة'] || s.order_id || '').trim();
-                    return !targetIds.includes(shipmentDbId) && !targetCodes.includes(shipmentCode);
-                });
-                allShipmentsById = new Map(allShipments.map(s => [String(s.id), s]));
-                const afterCount = allShipments.length;
-                const actuallyFiltered = beforeCount - afterCount;
+                if (delProgressBar) delProgressBar.style.width = '100%';
+                if (delProgressText) delProgressText.innerText = 'تم الحذف بنجاح، جاري تحديث الصفحة...';
 
-                housingSelectedIds.clear();
-                markHousingDataChanged();
-
-                try {
-                    const dailyVal = currentDailyFilter || document.getElementById('housingEditDateFilterSelect')?.value;
-                    if (dailyVal) await fetchShipments(dailyVal);
-                    housingDataVersion++;
-                    housingDisplayDataCache.clear();
-                    housingFilteredResultsCache.clear();
-                } finally {
-                    refreshDashboard();
-                    showLoading(false);
-                }
-
-                Swal.fire({
-                    icon: actuallyFiltered > 0 ? 'success' : 'warning',
-                    title: actuallyFiltered > 0 ? 'تم الحذف بنجاح' : 'تنبيه: تم الحذف من السيرفر فقط',
-                    text: actuallyFiltered > 0 
-                        ? `تم حذف ${targetIds.length} شحنة بنجاح من قاعدة البيانات والجدول.`
-                        : `تم الحذف من قاعدة البيانات، ولكن لم يتم مسح ${targetIds.length} شحنة من الجدول الحالي. يرجى تحديث الصفحة أو مراجعة تطابق المعرفات.`,
-                    timer: 5000,
-                    showConfirmButton: true
-                });
+                await new Promise(resolve => setTimeout(resolve, 600));
+                location.reload();
 
             } catch (err) {
                 console.error("Delete Selected Error:", err);
+                Swal.close();
                 Swal.fire('خطأ في العملية', 'فشل الحذف: ' + err.message, 'error');
             }
-            showLoading(false);
         }
 
         // Ctrl+Z shortcut — only active when housing section is visible
