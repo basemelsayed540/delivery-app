@@ -12405,13 +12405,19 @@
         let housingSidebarSearch = '';
         const HOUSING_SIDEBAR_DEFAULT_COLS = ['rep', 'status', 'sender', 'daily'];
         const HOUSING_SIDEBAR_EXTRA_KEY = 'housing_sidebar_extra_cols';
+        const HOUSING_SIDEBAR_HIDDEN_DEFAULTS_KEY = 'housing_sidebar_hidden_defaults';
 
         function getHousingSidebarExtraCols() {
             try { return JSON.parse(localStorage.getItem(HOUSING_SIDEBAR_EXTRA_KEY) || '[]'); } catch { return []; }
         }
 
+        function getHousingSidebarHiddenDefaults() {
+            try { return JSON.parse(localStorage.getItem(HOUSING_SIDEBAR_HIDDEN_DEFAULTS_KEY) || '[]'); } catch { return []; }
+        }
+
         function getHousingSidebarAllCols() {
-            const defaults = HOUSING_SIDEBAR_DEFAULT_COLS;
+            const hiddenDefaults = getHousingSidebarHiddenDefaults();
+            const defaults = HOUSING_SIDEBAR_DEFAULT_COLS.filter(c => !hiddenDefaults.includes(c));
             const extra = getHousingSidebarExtraCols().filter(c => !defaults.includes(c));
             return [...defaults, ...extra];
         }
@@ -12554,8 +12560,20 @@
 
         function showHousingSidebarConfig() {
             const extra = getHousingSidebarExtraCols();
+            const hiddenDefaults = getHousingSidebarHiddenDefaults();
             const available = ['zone', 'product', 'phone', 'altPhone', 'name', 'amount', 'code'];
             let html = '<div style="text-align:right;direction:rtl;padding:10px;max-height:400px;overflow-y:auto;">';
+
+            html += '<h6 class="fw-bold mb-3">الفلاتر الأساسية</h6>';
+            HOUSING_SIDEBAR_DEFAULT_COLS.forEach(c => {
+                const checked = hiddenDefaults.includes(c) ? '' : 'checked';
+                html += `<label class="d-flex align-items-center gap-2 px-2 py-1 rounded-3 mb-1" style="cursor:pointer;">
+                    <input type="checkbox" class="form-check-input housing-sidebar-default-cb m-0" value="${c}" ${checked}>
+                    <span class="small fw-bold">${getHousingSidebarColLabel(c)}</span>
+                </label>`;
+            });
+            html += '<hr class="my-2">';
+
             html += '<h6 class="fw-bold mb-3">اختر الأعمدة الإضافية</h6>';
             available.forEach(c => {
                 const checked = extra.includes(c) ? 'checked' : '';
@@ -12565,6 +12583,7 @@
                 </label>`;
             });
             html += '<hr class="my-2">';
+            html += '<div id="housingSidebarConfigWarning" class="text-danger small fw-bold mb-2" style="display:none;">يجب إبقاء فلتر واحد على الأقل مفعّلاً</div>';
             html += '<div class="d-flex gap-2"><button class="btn btn-sm btn-primary flex-fill" id="housingSidebarConfigSaveBtn">حفظ</button>';
             html += '<button class="btn btn-sm btn-outline-secondary flex-fill" id="housingSidebarConfigCancelBtn">الغاء</button></div>';
             html += '</div>';
@@ -12579,8 +12598,18 @@
             });
 
             document.getElementById('housingSidebarConfigSaveBtn').onclick = () => {
-                const selected = Array.from(document.querySelectorAll('.housing-sidebar-extra-cb:checked')).map(cb => cb.value);
-                localStorage.setItem(HOUSING_SIDEBAR_EXTRA_KEY, JSON.stringify(selected));
+                const selectedExtra = Array.from(document.querySelectorAll('.housing-sidebar-extra-cb:checked')).map(cb => cb.value);
+                const checkedDefaults = Array.from(document.querySelectorAll('.housing-sidebar-default-cb:checked')).map(cb => cb.value);
+                const uncheckedDefaults = HOUSING_SIDEBAR_DEFAULT_COLS.filter(c => !checkedDefaults.includes(c));
+
+                if (checkedDefaults.length === 0 && selectedExtra.length === 0) {
+                    const warning = document.getElementById('housingSidebarConfigWarning');
+                    if (warning) warning.style.display = 'block';
+                    return;
+                }
+
+                localStorage.setItem(HOUSING_SIDEBAR_EXTRA_KEY, JSON.stringify(selectedExtra));
+                localStorage.setItem(HOUSING_SIDEBAR_HIDDEN_DEFAULTS_KEY, JSON.stringify(uncheckedDefaults));
                 Swal.close();
                 rebuildHousingSidebarTabs();
                 initHousingFilterSidebar();
