@@ -71,8 +71,8 @@
           var d = (r['اليومية'] || '').trim();
           if (!d) return;
           countMap[d] = (countMap[d] || 0) + 1;
-          var v = (r['ارشيف'] || '').toString().trim();
-          var isArch = v && v !== 'false' && v !== '0';
+          var v = r['ارشيف'];
+          var isArch = v === true || v === 'true' || v === '1' || (String(v).trim() !== '' && String(v).trim() !== 'false' && String(v).trim() !== '0');
           if (isArch) dailyMap.set(d, true);
           if (!dailyMap.has(d)) dailyMap.set(d, false);
         });
@@ -98,7 +98,8 @@
     if (!user || user.role !== 'admin') return;
     D.isUsersLoading = true;
     try {
-      var result = await supabaseClient.rpc('get_all_users', { session_token: user.token });
+      var tables = getTableNames();
+      var result = await supabaseClient.from(tables.users).select('*').order('created_at', { ascending: false });
       if (result.error) { Toast.error('حدث خطأ أثناء جلب حسابات المناديب'); }
       else { D.usersList = result.data || []; }
     } catch(e) { Toast.error('أخفق الاتصال بالخادم لجلب المناديب'); }
@@ -353,7 +354,7 @@
       h += '<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">';
       h += '<div><label class="block text-xs font-bold text-text-muted mb-1">اسم المندوب (الكامل)</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('users', 'w-4 h-4') + '</span><input type="text" data-form-username value="' + escHtml(D.formUsername) + '" class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all" placeholder="أحمد علي محمد" required /></div></div>';
       h += '<div><label class="block text-xs font-bold text-text-muted mb-1">رقم الموبايل</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('phone', 'w-4 h-4') + '</span><input type="tel" data-form-phone value="' + escHtml(D.formPhone) + '" class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all" placeholder="01xxxxxxxxx" required /></div></div>';
-      h += '<div><label class="block text-xs font-bold text-text-muted mb-1">البريد الإلكتروني</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('mail', 'w-4 h-4') + '</span><input type="email" data-form-email value="' + escHtml(D.formEmail) + '" class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all" placeholder="rep@apklite.com" required /></div></div>';
+      h += '<div><label class="block text-xs font-bold text-text-muted mb-1">البريد الإلكتروني</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('mail', 'w-4 h-4') + '</span><input type="email" data-form-email value="' + escHtml(D.formEmail) + '" class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all" placeholder="rep@apptest.com" required /></div></div>';
       h += '<div><label class="block text-xs font-bold text-text-muted mb-1">' + (D.editingUser ? 'كلمة المرور الجديدة (اتركه فارغاً بعدم التعديل)' : 'كلمة المرور') + '</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('lock', 'w-4 h-4') + '</span><input type="password" data-form-password value="' + escHtml(D.formPassword) + '" class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all" placeholder="' + (D.editingUser ? 'بلا تغيير' : '••••••••') + '"' + (!D.editingUser ? ' required' : '') + ' /></div></div>';
       h += '<div><label class="block text-xs font-bold text-text-muted mb-1">صلاحية الحساب</label><div class="relative"><span class="absolute inset-y-0 right-0 flex items-center pr-3 text-text-muted pointer-events-none">' + icon('shield', 'w-4 h-4') + '</span><select data-form-role class="w-full bg-bg-main text-sm text-text-main border border-gray-700 rounded-xl pr-10 pl-3 py-2.5 focus:outline-none focus:ring-1 focus:ring-primary focus:border-transparent transition-all appearance-none"><option value="rep"' + (D.formRole === 'rep' ? ' selected' : '') + '>مندوب توصيل (rep)</option><option value="follower"' + (D.formRole === 'follower' ? ' selected' : '') + '>متابعة (follower)</option><option value="admin"' + (D.formRole === 'admin' ? ' selected' : '') + '>مدير النظام (admin)</option></select></div></div>';
       h += '<div class="flex items-center justify-start gap-3 h-full pt-5"><label class="flex items-center gap-2 cursor-pointer select-none"><input type="checkbox" data-form-approved' + (D.formApproved ? ' checked' : '') + ' class="w-4 h-4 rounded border-gray-600 text-primary bg-bg-main focus:ring-primary" /><span class="text-xs font-bold text-text-main">تفعيل الحساب مباشرة</span></label></div>';
@@ -445,8 +446,8 @@
         var result = await supabaseClient.from(tables.invoices).select('اليومية, ارشيف, الحالة, المدفوع, "عمولة المندوب", المندوب').not('ارشيف', 'is', null).range(start, start + pageSize - 1);
         if (!result.data || result.data.length === 0) break;
         result.data.forEach(function(s) {
-          var v = (s['ارشيف'] || '').toString().trim();
-          if (v && v !== 'false' && v !== '0') allArchived.push(s);
+          var v = s['ارشيف'];
+          if (v === true || v === 'true' || v === '1' || (String(v).trim() !== '' && String(v).trim() !== 'false' && String(v).trim() !== '0')) allArchived.push(s);
         });
         if (result.data.length < pageSize) break;
       }

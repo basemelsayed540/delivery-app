@@ -12,11 +12,7 @@ LANGUAGE SQL STABLE AS $$
   SELECT
     "اليومية",
     COUNT(*) AS total,
-    BOOL_OR(
-      COALESCE("ارشيف", '') <> ''
-      AND COALESCE("ارشيف", '') <> 'false'
-      AND COALESCE("ارشيف", '') <> '0'
-    ) AS is_archived
+    BOOL_OR(COALESCE("ارشيف", false)) AS is_archived
   FROM invoices
   WHERE "اليومية" IS NOT NULL AND "اليومية" <> ''
   GROUP BY "اليومية";
@@ -32,7 +28,7 @@ LANGUAGE SQL STABLE AS $$
     SUM(COALESCE("المدفوع", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن')) AS paid_sum,
     SUM(COALESCE("عمولة المندوب", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن')) AS commission_sum
   FROM invoices
-  WHERE COALESCE("ارشيف", '') NOT IN ('', 'false', '0')
+  WHERE COALESCE("ارشيف", false) = true
   GROUP BY 1;
 $$;
 
@@ -46,7 +42,7 @@ LANGUAGE SQL STABLE AS $$
     SUM(COALESCE("المدفوع", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن'))
       - SUM(COALESCE("عمولة المندوب", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن')) AS remittance
   FROM invoices
-  WHERE COALESCE("ارشيف", '') NOT IN ('', 'false', '0')
+  WHERE COALESCE("ارشيف", false) = true
     AND "اليومية" IS NOT NULL AND "اليومية" <> ''
   GROUP BY "اليومية";
 $$;
@@ -62,7 +58,7 @@ LANGUAGE SQL STABLE AS $$
     SUM(COALESCE("المدفوع", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن'))
       - SUM(COALESCE("عمولة المندوب", 0)) FILTER (WHERE "الحالة" IN ('تم', 'تعديل سعر', 'شحن')) AS remittance
   FROM invoices
-  WHERE COALESCE("ارشيف", '') NOT IN ('', 'false', '0')
+  WHERE COALESCE("ارشيف", false) = true
   GROUP BY 1
   ORDER BY cnt DESC;
 $$;

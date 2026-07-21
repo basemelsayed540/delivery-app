@@ -19,6 +19,11 @@
       this.isLoading = false;
     },
 
+    loginAsDev(devUser) {
+      this.user = devUser;
+      localStorage.setItem('courier_user', JSON.stringify(devUser));
+    },
+
     loginAsDemo() {
       const mockUser = {
         id: 'demo-rep',
@@ -40,35 +45,45 @@
       try {
         const cleanInput = phone.trim();
         const cleanPassword = password.trim();
+        const tables = getTableNames();
 
-        const { data, error } = await supabaseClient.rpc('login_user', {
-          phone_input: cleanInput,
-          password_input: cleanPassword
-        });
+        const { data, error } = await supabaseClient
+          .from(tables.users)
+          .select('*')
+          .or('phone.eq."' + cleanInput + '",username.eq."' + cleanInput + '",email.eq."' + cleanInput + '"')
+          .maybeSingle();
 
         if (error) {
+          let errorMsg = 'حدث خطأ أثناء الاتصال بالخادم: ' + error.message;
+          if (error.message.includes('relation "public.users" does not exist') || error.code === '42P01') {
+            errorMsg = 'جدول المستخدمين "users" غير موجود في قاعدة بيانات Supabase الخاصة بك.';
+          } else if (error.message.includes('column') && error.message.includes('does not exist')) {
+            errorMsg = 'أحد الأعمدة المطلوبة غير موجود في جدول "users". تفاصيل الخطأ: ' + error.message;
+          }
+          return { success: false, error: errorMsg };
+        }
+
+        if (!data) {
           return { success: false, error: 'بيانات الدخول غير صحيحة (رقم الهاتف أو كلمة المرور خاطئة).' };
         }
 
-        const row = Array.isArray(data) ? data[0] : data;
-        if (!row) {
+        const passwordMatch = data.password.startsWith('$2')
+          ? bcrypt.compareSync(cleanPassword, data.password)
+          : data.password === cleanPassword;
+
+        if (!passwordMatch) {
           return { success: false, error: 'بيانات الدخول غير صحيحة (رقم الهاتف أو كلمة المرور خاطئة).' };
         }
 
-        const userData = {
-          id: row.id,
-          username: row.username,
-          email: row.email,
-          role: row.role,
-          يتابع: row['يتابع'],
-          token: row.token
-        };
+        if (data.approved !== undefined && data.approved !== true) {
+          return { success: false, error: 'حسابك موجود ولكنه غير مفعل بعد من قبل الإدارة.' };
+        }
 
-        this.user = userData;
+        this.user = data;
         if (remember) {
-          localStorage.setItem('courier_user', JSON.stringify(userData));
+          localStorage.setItem('courier_user', JSON.stringify(data));
         } else {
-          sessionStorage.setItem('courier_user', JSON.stringify(userData));
+          sessionStorage.setItem('courier_user', JSON.stringify(data));
         }
         return { success: true };
       } catch(err) {

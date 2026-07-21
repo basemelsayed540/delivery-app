@@ -23,7 +23,8 @@
 
   function _isArchived(s) {
     var v = s['ارشيف'];
-    if (!v) return false;
+    if (v === true || v === 'true' || v === '1') return true;
+    if (v === false || v === 'false' || v === '0' || v === '' || v == null) return false;
     var t = String(v).trim();
     return t !== '' && t !== 'false' && t !== '0';
   }
@@ -181,7 +182,7 @@
     var root_html = '<div class="min-h-screen bg-bg-main flex flex-col pb-20 transition-colors duration-200">';
 
     root_html += '<header class="bg-bg-surface border-b border-border-subtle sticky top-0 z-40 px-4 py-3 flex justify-between items-center shadow-md transition-colors duration-200">';
-    root_html += '<div class="flex items-center gap-3"><div class="bg-primary/20 p-2 rounded-lg">' + icon('truck', 'w-5 h-5 text-primary') + '</div><div><h1 class="font-bold text-text-main text-md">APK LITE</h1><p class="text-xs text-text-muted">مرحباً، ' + escHtml(user.username) + '</p></div></div>';
+    root_html += '<div class="flex items-center gap-3"><div class="bg-primary/20 p-2 rounded-lg">' + icon('truck', 'w-5 h-5 text-primary') + '</div><div><h1 class="font-bold text-text-main text-md">App Test</h1><p class="text-xs text-text-muted">مرحباً، ' + escHtml(user.username) + '</p></div></div>';
     root_html += '<div class="flex items-center gap-3">';
     root_html += '<div class="relative notif-container"><button id="notif-btn" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-main transition-colors relative" title="الإشعارات">' + icon('bell', 'w-5 h-5') + '<span id="notif-badge" class="hidden absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-[16px] rounded-full flex items-center justify-center px-1">0</span></button><div id="notif-panel" class="hidden absolute left-0 top-full mt-2 w-72 max-h-80 overflow-y-auto bg-bg-surface border border-border-subtle rounded-2xl shadow-xl z-50"><div class="text-center py-6 text-text-muted text-sm">لا توجد إشعارات</div></div></div>';
     root_html += '<button id="dash-theme" class="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10 text-text-main transition-colors" title="' + (Theme.isDark ? 'الوضع العادي' : 'الوضع الليلي') + '">' + (Theme.isDark ? icon('sun', 'w-5 h-5 text-amber-400') : icon('moon', 'w-5 h-5 text-slate-700')) + '</button>';

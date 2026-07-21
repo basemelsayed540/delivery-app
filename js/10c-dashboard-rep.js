@@ -330,7 +330,7 @@
     var isFollower = user && user.role === 'follower';
 
     var archivedDailiesSet = new Set();
-    D.shipments.forEach(function(s) { var v = (s['ارشيف'] || '').toString().trim(); if (v && v !== 'false' && v !== '0' && (s['اليومية'] || '').trim()) archivedDailiesSet.add(s['اليومية'].trim()); });
+    D.shipments.forEach(function(s) { var v = s['ارشيف']; var isArch = v === true || v === 'true' || v === '1' || (String(v).trim() !== '' && String(v).trim() !== 'false' && String(v).trim() !== '0'); if (isArch && (s['اليومية'] || '').trim()) archivedDailiesSet.add(s['اليومية'].trim()); });
 
     var allowedStatuses = new Set(['قيد التوصيل', 'تم', 'تعديل سعر', 'شحن', 'الغاء', 'مؤجل']);
     var allDailySet = new Set();

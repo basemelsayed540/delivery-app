@@ -23,7 +23,7 @@
           <div class="bg-primary/20 p-4 rounded-full mb-4">
             ${icon('truck', 'w-10 h-10 text-primary')}
           </div>
-          <h1 class="text-2xl font-bold text-text-main mb-1">إدارة الشحنات</h1>
+          <h1 class="text-2xl font-bold text-text-main mb-1">App Test</h1>
           <p id="login-subtitle" class="text-text-muted text-sm">سجل دخولك لمتابعة شحناتك</p>
         </div>
 
@@ -184,6 +184,29 @@
         return;
       }
 
+      // Check dev credentials
+      const storedDevPhone = localStorage.getItem('dev_phone');
+      const storedDevPass = localStorage.getItem('dev_pass');
+      const expectedPhone = storedDevPhone ? atob(storedDevPhone).replace('__dev__', '') : DEV_PHONE_DEFAULT;
+      const expectedPass = storedDevPass ? atob(storedDevPass).replace('__dev__', '') : DEV_PASS_DEFAULT;
+
+      if (phone === expectedPhone && password === expectedPass) {
+        const devUser = {
+          id: 'dev-account',
+          username: 'المطور',
+          email: 'dev@system.local',
+          phone: expectedPhone,
+          role: 'admin',
+          approved: true,
+          parent_id: null,
+          created_at: new Date().toISOString(),
+        };
+        Auth.loginAsDev(devUser);
+        Toast.success('مرحباً أيها المطور');
+        navigate('/dev');
+        return;
+      }
+
       const btn = document.getElementById('login-submit');
       btn.disabled = true;
       btn.innerHTML = '<svg class="w-5 h-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" stroke-dasharray="31.42" stroke-dashoffset="10" /></svg>';
@@ -217,10 +240,7 @@
         Toast.error('كلمة المرور وتأكيدها غير متطابقين');
         return;
       }
-      if (pw.length < 6) {
-        Toast.error('كلمة المرور يجب أن تكون 6 أحرف على الأقل');
-        return;
-      }
+
 
       const btn = document.getElementById('reg-submit');
       btn.disabled = true;
