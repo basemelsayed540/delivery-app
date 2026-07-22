@@ -517,7 +517,7 @@
     groups.forEach(function(g) {
       var pct = Math.round((g.val / total) * 100);
       var dash = (g.val / total) * circumference;
-      h += '<div class="text-center">';
+      h += '<div class="text-center text-text-main">';
       h += '<svg viewBox="0 0 68 68" class="w-16 h-16 mx-auto">';
       h += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="var(--border-subtle, #e5e7eb)" stroke-width="7"/>';
       h += '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + g.color + '" stroke-width="7" stroke-linecap="round" stroke-dasharray="' + dash + ' ' + circumference + '" transform="rotate(-90 ' + cx + ' ' + cy + ')"/>';
@@ -533,6 +533,7 @@
   function _renderArchiveDailyBars(dailyData) {
     var monthNames = ['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
     var groups = {};
+    var flatSorted = [];
     dailyData.forEach(function(row) {
       var parts = (row['اليومية'] || '').split('/');
       if (parts.length !== 3) return;
@@ -541,27 +542,72 @@
       var year = parseInt(parts[2], 10) || 0;
       var key = year + '-' + month;
       if (!groups[key]) groups[key] = { year: year, month: month, items: [] };
-      groups[key].items.push({ day: day, cnt: Number(row.cnt || 0), full: row['اليومية'] });
+      var item = { day: day, month: month, year: year, cnt: Number(row.cnt || 0), full: row['اليومية'] };
+      groups[key].items.push(item);
+      flatSorted.push(item);
     });
+    flatSorted.sort(function(a, b) { return (a.year * 10000 + a.month * 100 + a.day) - (b.year * 10000 + b.month * 100 + b.day); });
+    var prevMap = {};
+    for (var i = 0; i < flatSorted.length; i++) {
+      if (i > 0) prevMap[flatSorted[i].full] = flatSorted[i - 1];
+    }
     var keys = Object.keys(groups).sort(function(a, b) { return groups[b].year * 100 + groups[b].month - (groups[a].year * 100 + groups[a].month); });
     var h = '';
+    var barIdx = 0;
     keys.forEach(function(key) {
       var g = groups[key];
       var maxCnt = Math.max.apply(null, g.items.map(function(it) { return it.cnt; })) || 1;
+      var totalCnt = g.items.reduce(function(s, it) { return s + it.cnt; }, 0);
+      var avgCnt = totalCnt / g.items.length;
+      var trackHeightPx = 65;
+      var minBarPx = 6;
+      var topLabelsPx = 35;
+      var bottomLabelPx = 19;
+      var totalHeightPx = topLabelsPx + trackHeightPx + bottomLabelPx;
+      var avgLinePx = Math.round((avgCnt / maxCnt) * trackHeightPx);
       h += '<div class="mb-4">';
       h += '<div class="text-xs font-bold text-text-muted mb-2">' + monthNames[g.month - 1] + ' ' + g.year + '</div>';
-      h += '<div class="flex items-end gap-2 overflow-x-auto" style="height:100px">';
+      h += '<div class="relative" style="height:' + totalHeightPx + 'px">';
+      h += '<div class="absolute left-0 right-0 border-t border-dashed border-text-muted/20" style="bottom:' + (avgLinePx + bottomLabelPx) + 'px"></div>';
+      h += '<div class="absolute left-0 right-0 flex items-end gap-2" style="bottom:' + bottomLabelPx + 'px">';
       g.items.sort(function(a, b) { return a.day - b.day; }).forEach(function(it) {
-        var pct = Math.max(8, Math.round((it.cnt / maxCnt) * 100));
+        var barHeightPx = Math.max(minBarPx, Math.round((it.cnt / maxCnt) * trackHeightPx));
+        var isTop = it.cnt === maxCnt;
+        var barBg = isTop
+          ? 'background:linear-gradient(to top, var(--color-primary, #6366f1), color-mix(in srgb, var(--color-primary, #6366f1) 40%, white))'
+          : 'background:linear-gradient(to top, var(--color-primary, #6366f1), color-mix(in srgb, var(--color-primary, #6366f1) 50%, white)); opacity:' + Math.max(0.5, it.cnt / maxCnt);
+        var prev = prevMap[it.full];
+        var growthHtml = '';
+        if (prev) {
+          var diff = it.cnt - prev.cnt;
+          if (prev.cnt === 0 && it.cnt > 0) {
+            growthHtml = '<span class="text-[9px] font-bold text-emerald-500 block leading-none">\u062C\u062F\u064A\u062F</span>';
+          } else if (prev.cnt === 0 && it.cnt === 0) {
+            growthHtml = '<span class="text-[9px] text-text-muted block leading-none">-</span>';
+          } else {
+            var growthPct = Math.round((diff / prev.cnt) * 100);
+            if (diff > 0) {
+              growthHtml = '<span class="text-[9px] font-bold text-emerald-500 block leading-none">\u25B2' + growthPct + '%</span>';
+            } else if (diff < 0) {
+              growthHtml = '<span class="text-[9px] font-bold text-red-500 block leading-none">\u25BC' + Math.abs(growthPct) + '%</span>';
+            } else {
+              growthHtml = '<span class="text-[9px] text-text-muted block leading-none">0%</span>';
+            }
+          }
+        }
+        var tooltipText = it.full + ' | ' + it.cnt + ' \u0634\u062D\u0646\u0629' + (prev ? ' | ' + (growthHtml ? growthHtml.replace(/<[^>]*>/g, '') : '-') : '');
         h += '<div class="flex flex-col items-center flex-shrink-0" style="width:28px">';
+        h += growthHtml;
+        if (isTop) h += '<span style="font-size:8px;line-height:1;margin-bottom:1px">\u2B50</span>';
         h += '<span class="text-[9px] font-bold text-primary mb-1">' + it.cnt + '</span>';
-        h += '<div class="w-full rounded-t-md bg-primary/70" style="height:' + pct + '%"></div>';
+        h += '<div title="' + tooltipText + '" class="w-full rounded-t-md cursor-pointer" style="height:' + barHeightPx + 'px;' + barBg + ';transform-origin:bottom;animation:barGrow 0.5s ease-out ' + (barIdx * 60) + 'ms both"></div>';
         h += '<span class="text-[9px] text-text-muted mt-1">' + it.day + '</span>';
         h += '</div>';
+        barIdx++;
       });
       h += '</div></div>';
     });
-    return h || '<p class="text-xs text-text-muted text-center py-4">لا توجد يوميات مؤرشفة</p>';
+    return h || '<p class="text-xs text-text-muted text-center py-4">\u0644\u0627 \u062A\u0648\u062C\u062F \u064A\u0648\u0645\u064A\u0627\u062A \u0645\u0622\u0631\u0634\u0641\u0629</p>';
   }
 
   function _renderArchiveStats() {
@@ -596,6 +642,47 @@
     h += '</div>';
 
     h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
+    h += '<h3 class="text-xs font-bold text-text-main mb-3 flex items-center gap-2">' + icon('users', 'w-3.5 h-3.5 text-primary') + ' أداء المناديب في المؤرشف</h3>';
+    if (data.reps && data.reps.length) {
+      var repsMax = data.reps[0].cnt || 1;
+      var repsTotal = data.reps.reduce(function(s, r) { return s + Number(r.cnt || 0); }, 0);
+      h += '<div class="space-y-3' + (data.reps.length > 6 ? ' max-h-[280px] overflow-y-auto pr-1' : '') + '">';
+      data.reps.forEach(function(row, idx) {
+        var cnt = Number(row.cnt || 0);
+        var barW = repsMax > 0 ? Math.max(8, Math.round((cnt / repsMax) * 100)) : 8;
+        var share = repsTotal > 0 ? Math.round((cnt / repsTotal) * 100) : 0;
+        var rankColors = [
+          'bg-amber-400 text-white',
+          'bg-gray-300 text-gray-700 dark:bg-gray-400 dark:text-gray-800',
+          'bg-amber-600 text-white'
+        ];
+        var rankClass = idx < 3 ? rankColors[idx] : 'bg-bg-muted text-text-muted border border-border-subtle';
+        h += '<div class="flex items-center gap-3">';
+        h += '<div class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ' + rankClass + '">' + (idx + 1) + '</div>';
+        h += '<div class="flex-1 min-w-0">';
+        h += '<div class="flex items-center gap-2 mb-1">';
+        h += '<span class="text-xs font-bold text-text-main truncate">' + escHtml(row['المندوب'] || '') + '</span>';
+        h += '<span class="text-[10px] text-text-muted">' + share + '% من الإجمالي</span>';
+        h += '</div>';
+        h += '<div class="flex items-center gap-2">';
+        h += '<div class="flex-1 h-3 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">';
+        h += '<div class="h-full rounded-full" style="width:' + barW + '%;background:linear-gradient(to right, var(--color-primary, #6366f1), color-mix(in srgb, var(--color-primary, #6366f1) 60%, white))"></div>';
+        h += '</div>';
+        h += '<span class="text-[10px] font-bold text-primary flex-shrink-0">' + cnt + '</span>';
+        h += '</div>';
+        h += '<div class="flex gap-1.5 mt-1">';
+        h += '<span class="text-[9px] font-bold text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded-full">' + Number(row.commission || 0).toLocaleString() + ' عمولة</span>';
+        h += '<span class="text-[9px] font-bold text-sky-500 bg-sky-500/10 px-1.5 py-0.5 rounded-full">' + Number(row.remittance || 0).toLocaleString() + ' توريد</span>';
+        h += '</div>';
+        h += '</div></div>';
+      });
+      h += '</div>';
+    } else {
+      h += '<p class="text-xs text-text-muted text-center py-4">لا توجد بيانات مناديب مؤرشفة</p>';
+    }
+    h += '</div>';
+
+    h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
     h += '<h3 class="text-xs font-bold text-text-main mb-3 flex items-center gap-2">' + icon('box', 'w-3.5 h-3.5 text-primary') + ' ملخص عام</h3>';
     h += _renderArchiveStatusRings(statusCounts, totalCount);
     h += '</div>';
@@ -603,29 +690,6 @@
     h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
     h += '<h3 class="text-xs font-bold text-text-main mb-3 flex items-center gap-2">' + icon('box', 'w-3.5 h-3.5 text-primary') + ' تفصيل حسب اليومية المؤرشفة</h3>';
     h += _renderArchiveDailyBars(data.daily);
-    h += '</div>';
-
-    h += '<div class="bg-bg-surface border border-border-subtle rounded-2xl p-5 shadow-sm">';
-    h += '<h3 class="text-xs font-bold text-text-main mb-3 flex items-center gap-2">' + icon('users', 'w-3.5 h-3.5 text-primary') + ' أداء المناديب في المؤرشف</h3>';
-    if (data.reps && data.reps.length) {
-      h += '<div class="overflow-x-auto"><table class="w-full text-xs"><thead><tr class="border-b border-border-subtle">';
-      h += '<th class="text-right py-2 px-3 font-bold text-text-muted">المندوب</th>';
-      h += '<th class="text-center py-2 px-3 font-bold text-text-muted">الشحنات</th>';
-      h += '<th class="text-center py-2 px-3 font-bold text-text-muted">عمولة المندوب</th>';
-      h += '<th class="text-center py-2 px-3 font-bold text-text-muted">التوريد</th>';
-      h += '</tr></thead><tbody>';
-      data.reps.forEach(function(row) {
-        h += '<tr class="border-b border-border-subtle/50 hover:bg-black/5 dark:hover:bg-white/5">';
-        h += '<td class="py-2 px-3 font-bold text-text-main">' + escHtml(row['المندوب'] || '') + '</td>';
-        h += '<td class="py-2 px-3 text-center font-bold text-primary">' + Number(row.cnt || 0) + '</td>';
-        h += '<td class="py-2 px-3 text-center font-bold text-amber-500">' + Number(row.commission || 0).toLocaleString() + '</td>';
-        h += '<td class="py-2 px-3 text-center font-bold text-sky-500">' + Number(row.remittance || 0).toLocaleString() + '</td>';
-        h += '</tr>';
-      });
-      h += '</tbody></table></div>';
-    } else {
-      h += '<p class="text-xs text-text-muted text-center py-4">لا توجد بيانات مناديب مؤرشفة</p>';
-    }
     h += '</div>';
 
     h += '</div>';

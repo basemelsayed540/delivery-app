@@ -60,7 +60,7 @@
     menuOpen: false, showEditAccount: false, editPhone: '', editPass: '',
     filters: { status: '', search: '', daily: '', zone: '', sender: '', rep: '' },
     repArchiveFilter: (function() { var v = localStorage.getItem('repArchiveFilter'); return (v === 'نشطة' || v === 'مؤرشفة') ? v : 'نشطة'; })(),
-    adminTab: 'stats',
+    adminTab: (function() { var v = localStorage.getItem('adminActiveTab'); return (v === 'stats' || v === 'users' || v === 'archive') ? v : 'stats'; })(),
     selectedDaily: localStorage.getItem('adminDailyFilter') || 'الكل',
     archiveFilter: (function() { var v = localStorage.getItem('adminArchiveFilter'); return (v === 'نشطة' || v === 'مؤرشفة') ? v : 'نشطة'; })(),
     adminRepSearch: '', courierSortBy: 'نسبة-تنازلي',
@@ -271,6 +271,7 @@
       document.querySelectorAll('[data-admin-tab]').forEach(function(btn) {
         btn.addEventListener('click', function() {
           D.adminTab = this.getAttribute('data-admin-tab');
+          localStorage.setItem('adminActiveTab', D.adminTab);
           if (D.adminTab === 'archive' && !D.archiveStats) {
             D.isLoading = true; _renderDashboardMain();
             _fetchArchiveStats().then(function() { D.isLoading = false; _renderDashboardMain(); });
