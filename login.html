@@ -244,11 +244,17 @@
         </div>
     </div>
 
-    <script src="assets/js/shipment-config.js"></script>
     <script>
-        const BUILD = '5'; if (!window.location.href.includes('_t=')) { localStorage.setItem('rep-version', BUILD); window.location.href = window.location.href.split('?')[0] + '?_t=' + BUILD; }
-        const { createClient } = supabase;
-        const supabaseClient = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+        // Supabase credentials must not survive in browser storage after a key rotation.
+        localStorage.removeItem('dev_supabase_url');
+        localStorage.removeItem('dev_supabase_key');
+        localStorage.removeItem('dev_table_shipments');
+        localStorage.removeItem('dev_table_users');
+    </script>
+    <script src="assets/js/shipment-config.js?v=20260724-5"></script>
+    <script>
+        const BUILD = '8'; if (!window.location.href.includes('_t=')) { localStorage.setItem('rep-version', BUILD); window.location.href = window.location.href.split('?')[0] + '?_t=' + BUILD; }
+        const supabaseClient = getSharedSupabaseClient();
 
         const loginForm = document.getElementById('loginForm');
         const loginBtn = document.getElementById('loginBtn');

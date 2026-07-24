@@ -3,32 +3,81 @@ const _enc = function(s) { return btoa(_salt + s); };
 const _dec = function(s) { try { var r = atob(s); return r.indexOf(_salt) === 0 ? r.slice(_salt.length) : r; } catch(e) { return s; } };
 
 const _b64 = {
-    URL: 'aHR0cHM6Ly9ldnJxeGducXduZ29rdWtxZXJwcy5zdXBhYmFzZS5jbw==',
-    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1WMmNuRjRaMjV4ZDI1bmIydDFhM0ZsY25Ceklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpZNU9ERTNOamdzSW1WNGNDSTZNakE1TWpVMU56YzJPSDAuMlltOTZENWo1aXVUWjQzcmR4bFprOEVNdTZQeWc0WGZYMk5PZE1ocXFyNA=='
+    URL: 'aHR0cHM6Ly9pb2R5b2hzc290dHRtYnJhcGdiay5zdXBhYmFzZS5jbw==',
+    KEY: 'X19zdXBhX19leUpoYkdjaU9pSklVekkxTmlJc0luUjVjQ0k2SWtwWFZDSjkuZXlKcGMzTWlPaUp6ZFhCaFltRnpaU0lzSW5KbFppSTZJbWx2WkhsdmFITnpiM1IwZEcxaWNtRndaMkpySWl3aWNtOXNaU0k2SW1GdWIyNGlMQ0pwWVhRaU9qRTNPRFF5TURRME5UVXNJbVY0Y0NJNk1qQTVPVGM0TURRMU5YMC5TaG5PNjUxVDNiWmVvdjg2cjFYc3ltVC1RNUpFNDU0U1hfeUQwMVdRdlo0'
 };
 function _d(s) { try { return atob(s); } catch { return s; } }
 
 var CONFIG = {
     SUPABASE_URL: _d(_b64.URL),
-    SUPABASE_KEY: _d(_b64.KEY),
+    // The encoded key includes the internal __supa__ marker; _dec removes it.
+    SUPABASE_KEY: _dec(_b64.KEY),
     TABLES: {
-        SHIPMENTS: 'abdo',
+        SHIPMENTS: 'invoices',
         USERS: 'users',
         SETTLEMENTS: 'settlements'
     }
 };
 
-// Override from localStorage (encrypted)
+// Production pages must always use the deployed project's public key.
+// Browser-stored keys can remain after a Supabase key rotation and cause 401.
+CONFIG.ALLOW_LOCAL_SUPABASE_OVERRIDE = false;
+CONFIG.ALLOW_LOCAL_TABLE_OVERRIDE = false;
+
+// Override from localStorage (encrypted).  Keep the URL and key paired: a
+// saved URL for another project produces Supabase's "Invalid API key" error.
+function normalizeSupabaseUrl(value) {
+    var url = String(value || '').trim().replace(/\/+$/, '');
+    return url.replace(/\/rest\/v1$/i, '');
+}
+
+function getSupabaseProjectRefFromKey(key) {
+    try {
+        var payload = String(key || '').split('.')[1];
+        if (!payload) return '';
+        var normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+        var decoded = atob(normalized + '='.repeat((4 - normalized.length % 4) % 4));
+        return JSON.parse(decoded).ref || '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function isSupabaseUrlForKey(url, key) {
+    try {
+        var ref = getSupabaseProjectRefFromKey(key);
+        return !!ref && new URL(url).hostname === ref + '.supabase.co';
+    } catch (e) {
+        return false;
+    }
+}
+
 (function() {
     try {
         var u = localStorage.getItem('dev_supabase_url');
         var k = localStorage.getItem('dev_supabase_key');
-        if (u) CONFIG.SUPABASE_URL = _dec(u);
-        if (k) CONFIG.SUPABASE_KEY = _dec(k);
+        var savedUrl = normalizeSupabaseUrl(u ? _dec(u) : '');
+        var savedKey = k ? _dec(k) : '';
+        var candidateUrl = savedUrl || CONFIG.SUPABASE_URL;
+        var candidateKey = savedKey || CONFIG.SUPABASE_KEY;
+
+        if (CONFIG.ALLOW_LOCAL_SUPABASE_OVERRIDE && isSupabaseUrlForKey(candidateUrl, candidateKey)) {
+            CONFIG.SUPABASE_URL = candidateUrl;
+            CONFIG.SUPABASE_KEY = candidateKey;
+        } else if (u || k) {
+            console.warn('تم حذف إعداد Supabase محلي قديم لمنع خطأ Invalid API key.');
+            localStorage.removeItem('dev_supabase_url');
+            localStorage.removeItem('dev_supabase_key');
+        }
         var ts = localStorage.getItem('dev_table_shipments');
         var tu = localStorage.getItem('dev_table_users');
-        if (ts) CONFIG.TABLES.SHIPMENTS = _dec(ts);
-        if (tu) CONFIG.TABLES.USERS = _dec(tu);
+        if (CONFIG.ALLOW_LOCAL_TABLE_OVERRIDE) {
+            if (ts) CONFIG.TABLES.SHIPMENTS = _dec(ts);
+            if (tu) CONFIG.TABLES.USERS = _dec(tu);
+        } else if (ts || tu) {
+            localStorage.removeItem('dev_table_shipments');
+            localStorage.removeItem('dev_table_users');
+        }
     } catch(e) {}
 })();
 

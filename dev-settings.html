@@ -302,12 +302,17 @@
 
     function saveSupabaseConfig() {
         try {
-            var url = document.getElementById('supabaseUrl').value.trim();
+            var url = normalizeSupabaseUrl(document.getElementById('supabaseUrl').value);
             var key = document.getElementById('supabaseKey').value.trim();
             var ts = document.getElementById('tableShipments').value.trim();
             var tu = document.getElementById('tableUsers').value.trim();
             if (!url || !key) { Swal.fire({ icon: 'error', title: 'خطأ', text: 'يرجى إدخال رابط Supabase والمفتاح' }); return; }
+            if (!isSupabaseUrlForKey(url, key)) {
+                Swal.fire({ icon: 'error', title: 'بيانات غير متطابقة', text: 'رابط المشروع لا يطابق المفتاح العام. استخدم رابط المشروع فقط، بدون /rest/v1/.' });
+                return;
+            }
             if (!ts || !tu) { Swal.fire({ icon: 'error', title: 'خطأ', text: 'يرجى إدخال أسماء الجداول' }); return; }
+            document.getElementById('supabaseUrl').value = url;
             localStorage.setItem('dev_supabase_url', _enc(url));
             localStorage.setItem('dev_supabase_key', _enc(key));
             localStorage.setItem('dev_table_shipments', _enc(ts));
@@ -330,7 +335,7 @@
         localStorage.removeItem('dev_table_users');
         loadConfig();
         CONFIG.SUPABASE_URL = _d(_b64.URL);
-        CONFIG.SUPABASE_KEY = _d(_b64.KEY);
+        CONFIG.SUPABASE_KEY = _dec(_b64.KEY);
         CONFIG.TABLES.SHIPMENTS = 'abdo';
         CONFIG.TABLES.USERS = 'users';
         updateSqlBlock();
