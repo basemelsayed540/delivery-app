@@ -1,29 +1,10 @@
 ﻿const _salt = '__supa__';
-const _enc = function(s) {
-    // UTF-8 لدعم العربية وأي يونيكود (btoa الأصلي يدعم Latin-1 فقط فيفشل مع العربية)
-    try {
-        var bin = '';
-        new TextEncoder().encode(_salt + s).forEach(function(b) { bin += String.fromCharCode(b); });
-        return btoa(bin);
-    } catch (e) {
-        return btoa(_salt + s); // Fallback للمتصفحات القديمة جداً بلا TextEncoder (نصوص ASCII فقط)
-    }
-};
-const _dec = function(s) {
-    try {
-        var bin = atob(s);
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 0xff;
-        var decoded = new TextDecoder('utf-8').decode(bytes);
-        return decoded.indexOf(_salt) === 0 ? decoded.slice(_salt.length) : decoded;
-    } catch (e) {
-        return s; // بيانات تالفة/غير صحيحة => إرجاع القيمة كما هي (Fallback آمن، لا شاشة بيضاء)
-    }
-};
+const _enc = function(s) { return btoa(_salt + s); };
+const _dec = function(s) { try { var r = atob(s); return r.indexOf(_salt) === 0 ? r.slice(_salt.length) : r; } catch(e) { return s; } };
 
 const _b64 = {
-    URL: 'aHR0cHM6Ly9pb2R5b2hzc290dHRtYnJhcGdiay5zdXBhYmFzZS5jby8=',
-    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1sdlpIbHZhSE56YjNSMGRHMWljbUZ3WjJKcklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzT0RReU1EUTBOVFVzSW1WNGNDSTZNakE1T1RjNE1EUTFOWDAuU2huTzY1MVQzYlplb3Y4NnIxWHN5bVQtUTVKRTQ1NFNYX3lEMDFXUXZaNA=='
+    URL: 'aHR0cHM6Ly9ldnJxeGducXduZ29rdWtxZXJwcy5zdXBhYmFzZS5jbw==',
+    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1WMmNuRjRaMjV4ZDI1bmIydDFhM0ZsY25Ceklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpZNU9ERTNOamdzSW1WNGNDSTZNakE1TWpVMU56YzJPSDAuMlltOTZENWo1aXVUWjQzcmR4bFprOEVNdTZQeWc0WGZYMk5PZE1ocXFyNA=='
 };
 function _d(s) { try { return atob(s); } catch { return s; } }
 
@@ -61,49 +42,6 @@ var DEV_PASS = _dec('X19zdXBhX185MTA=');
         var dq = localStorage.getItem('dev_pass');
         if (dp) DEV_PHONE = _dec(dp);
         if (dq) DEV_PASS = _dec(dq);
-    } catch(e) {}
-})();
-
-// ===== Developer override: primary color (limited/safe scope) =====
-// يتم تحميل هذا الملف في كل الصفحات، لذا تطبيق اللون المخصص هنا يعيد تعريف
-// متغيرات الألوان المركزية (--primary/--primary-dark/--primary-soft) وكل ما
-// يعتمد عليها في style.css. ملاحظة: العناصر ذات الألوان الثابتة داخل بعض
-// الصفحات (بـ hex مباشر) لا تتغير — وهذا ضمن النطاق (أ) الآمن والمحدود.
-CONFIG.SYSTEM_COLOR_STORAGE_KEY = 'dev_system_color';
-(function() {
-    try {
-        var raw = localStorage.getItem(CONFIG.SYSTEM_COLOR_STORAGE_KEY);
-        if (!raw) return;
-        var color = _dec(raw);
-        if (!color) return;
-        if (!/^#[0-9A-Fa-f]{6}$/.test(color)) return; // رفض أي قيمة غير صحيحة
-        function hexToRgb(hex) {
-            var n = parseInt(hex.slice(1), 16);
-            return (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255);
-        }
-        // اشتقاق درجة أغمق (أو أنصع) من اللون المختار للحفاظ على تباين التدرّجات
-        function shade(hex, pct) {
-            var n = parseInt(hex.slice(1), 16);
-            var r = Math.round(((n >> 16) & 255) * (1 + pct));
-            var g = Math.round(((n >> 8) & 255) * (1 + pct));
-            var b = Math.round((n & 255) * (1 + pct));
-            r = Math.max(0, Math.min(255, r));
-            g = Math.max(0, Math.min(255, g));
-            b = Math.max(0, Math.min(255, b));
-            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
-        }
-        var rgb = hexToRgb(color);
-        var dark = shade(color, -0.35); // درجة أغمق بنسبة 35%
-        var style = document.createElement('style');
-        style.id = 'dev-color-override';
-        style.textContent = ':root{--primary:' + color +
-            ';--primary-dark:' + dark +
-            ';--primary-soft:rgba(' + rgb + ',0.14)' +
-            ';--accent:' + color +
-            ';--accent-dark:' + dark +
-            ';--accent-soft:rgba(' + rgb + ',0.14)' +
-            ';--shadow-hover:0 22px 55px rgba(' + rgb + ',0.14);}';
-        document.head.appendChild(style);
     } catch(e) {}
 })();
 

@@ -10,10 +10,12 @@
     <title>لوحة المندوب | نظام الشحن</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>tailwind.config={darkMode:'class'}</script>
+    <script>(function(){try{var s=localStorage.getItem('shipment-theme');var d=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;document.documentElement.classList.toggle('light-forced',s==='light'||(!s&&!d));}catch(e){}})();</script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/style.css?v=0653F38806">
     <style>
         * { font-family: 'Cairo', 'Tajawal', sans-serif; box-sizing: border-box; }
         body { background: #f6f8fc; min-height: 100vh; padding-bottom: 80px; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; text-rendering: optimizeLegibility; }
@@ -24,11 +26,11 @@
         .stat-card .label { font-size: 0.7rem; font-weight: 600; color: #64748b; letter-spacing: 0.02em; }
         .dark .stat-card .label { color: #94a3b8; }
         .dark [id$="Breakdown"] { color: rgba(148,163,184,0.5) !important; }
-        .quick-status-card.active { border-color: #6366f1; background: rgba(99,102,241,.08); box-shadow: 0 0 0 1px rgba(99,102,241,.3); }
-        .dark .quick-status-card.active { background: rgba(99,102,241,.12); border-color: #818cf8; }
+        .quick-status-card.active { border-color: #ea580c; background: rgba(234, 88, 12,.08); box-shadow: 0 0 0 1px rgba(234, 88, 12,.3); }
+        .dark .quick-status-card.active { background: rgba(234, 88, 12,.12); border-color: #818cf8; }
         .progress-bar-custom { height: 10px; border-radius: 10px; background: #e2e8f0; overflow: hidden; }
         .dark .progress-bar-custom { background: #1e293b; }
-        .progress-bar-custom .fill { height: 100%; border-radius: 10px; background: linear-gradient(135deg, #4f46e5, #0ea5e9); transition: width 0.6s ease; }
+        .progress-bar-custom .fill { height: 100%; border-radius: 10px; background: linear-gradient(135deg, #c2410c, #0ea5e9); transition: width 0.6s ease; }
         .action-btns { display: flex; flex-direction: column; gap: 5px; margin-top: 10px; }
         .action-btns .row { display: flex; gap: 6px; }
         .action-btns .row .action-btn { flex: 1; }
@@ -52,8 +54,8 @@
         .greeting-text { color:#000;margin:0;font-weight:800; } .dark .greeting-text { color:#fff; }
         .shipment-eye-btn { display: inline-flex; align-items: center; justify-content: center; padding: 0.75rem; border-radius: 0.75rem; border: 1px solid #e2e8f0; background: #ffffff; color: #64748b; cursor: pointer; line-height: 1; transition: background 0.25s, color 0.25s, border-color 0.25s, box-shadow 0.25s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .dark .shipment-eye-btn { background: #1e293b; border-color: #334155; color: #94a3b8; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
-        .shipment-eye-btn:hover { color: #6366f1; border-color: #c7d2fe; }
-        .dark .shipment-eye-btn:hover { color: #818cf8; border-color: #3730a3; }
+        .shipment-eye-btn:hover { color: #ea580c; border-color: #fed7aa; }
+        .dark .shipment-eye-btn:hover { color: #818cf8; border-color: #9a3412; }
         .badge-num { position: absolute; top: -6px; right: -6px; background: #ef4444; color: #fff; font-size: 0.6rem; width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; line-height: 1; }
         .phone-row { margin-top: 6px; display: flex; gap: 6px; justify-content: flex-end; }
         .phone-icon-wrap { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px; border-radius: 50%; background: #e8f5e9; color: #059669; cursor: pointer; transition: all 0.2s; font-size: 0.8rem; }
@@ -81,30 +83,36 @@
         .shipment-row .main { font-size: 0.95rem; font-weight: 700; }
         .shipment-row .sub { font-size: 0.8rem; font-weight: 500; color: #64748b; }
         .dark .shipment-row .sub { color: #94a3b8; }
-        .shipment-row .field-label { font-size: 0.75rem; font-weight: 600; color: #94a3b8; margin-left: 2px; }
+        .shipment-row .field-label { font-size: 10px; font-weight: 400; color: #94a3b8; margin-left: 2px; }
         .dark .shipment-row .field-label { color: #64748b; }
-        .shipment-row .customer-name { color: #4f46e5; }
-        .dark .shipment-row .customer-name { color: #818cf8; }
-        .shipment-row .detail-address { color: #0f766e; font-weight: 600; }
-        .dark .shipment-row .detail-address { color: #5eead4; }
-        .shipment-amount { font-weight: 800; color: #047857; }
-        .dark .shipment-amount { font-weight: 800; color: #34d399; }
+        .shipment-row .customer-name { font-size: 14px; font-weight: 700; color: #c2410c; }
+        .dark .shipment-row .customer-name { font-size: 14px; font-weight: 700; color: #818cf8; }
+        .shipment-row .detail-address { font-size: 12px; font-weight: 500; color: #0f766e; }
+        .dark .shipment-row .detail-address { font-size: 12px; font-weight: 500; color: #5eead4; }
+        .shipment-amount { font-size: 16px; font-weight: 700; color: #047857; }
+        .dark .shipment-amount { font-size: 16px; font-weight: 700; color: #34d399; }
         .archived-row { opacity: 0.5; }
         .dark .archived-row { opacity: 0.4; }
         .swal-dark .swal2-title { color: #f8fafc !important; }
+
+        .value-product { font-size: 14px; font-weight: 700; }
+        .value-sender { font-size: 12px; font-weight: 500; }
+        .value-notes { font-size: 11px; font-weight: 500; }
+        .value-amount { font-size: 16px; font-weight: 700; }
+        .status-badge { font-size: 14px; font-weight: 700; }
         .swal-dark .swal2-html-container { color: #cbd5e1 !important; }
         .swal-dark .swal2-validation-message { background: #1e293b; color: #f8fafc; }
         .empty-state { text-align: center; padding: 48px 24px; color: #94a3b8; line-height: 1.7; }
         .dark .empty-state { color: #64748b; }
         ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-thumb { background: #6366f1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #ea580c; border-radius: 10px; }
         .icon-btn { width: 2.5rem; height: 2.5rem; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid rgba(148,163,184,0.15); color: #64748b; transition: background 0.25s, color 0.25s, transform 0.25s; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
         .dark .icon-btn { background: #1e293b; border-color: rgba(148,163,184,0.12); color: #94a3b8; box-shadow: 0 2px 12px rgba(0,0,0,0.2); }
-        .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(99,102,241,0.15); }
-        .dark .icon-btn:hover { background: #334155; color: #e2e8f0; border-color: rgba(99,102,241,0.25); }
+        .icon-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(234, 88, 12,0.15); }
+        .dark .icon-btn:hover { background: #334155; color: #e2e8f0; border-color: rgba(234, 88, 12,0.25); }
         .icon-btn.logout:hover { color: #f43f5e; }
         .dark .icon-btn.logout:hover { color: #fb7185; background: #1e293b; }
-        .fav-btn { background: none; border: none; cursor: pointer; padding: 0; transition: all 0.2s; color: #94a3b8; line-height: 1; vertical-align: middle; font-size: 1rem; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .fav-btn { background: none; border: none; cursor: pointer; padding: 0; transition: all 0.2s; color: #94a3b8; line-height: 1; vertical-align: middle; font-size: 1.4rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
         .fav-btn:hover { background: rgba(148,163,184,0.1); }
         .dark .fav-btn:hover { background: rgba(148,163,184,0.15); }
         .fav-btn.active { color: #ef4444; }
@@ -136,8 +144,8 @@
         .menu-panel.show { display: block; }
         .menu-item { padding: 14px 16px; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 10px; color: #0f172a; border-bottom: 1px solid rgba(148,163,184,0.08); }
         .dark .menu-item { color: #f8fafc; border-color: rgba(148,163,184,0.06); }
-        .menu-item:hover { background: rgba(99,102,241,0.06); }
-        .dark .menu-item:hover { background: rgba(99,102,241,0.1); }
+        .menu-item:hover { background: rgba(234, 88, 12,0.06); }
+        .dark .menu-item:hover { background: rgba(234, 88, 12,0.1); }
         .menu-item.logout-item { color: #dc2626; border-bottom: none; }
         .dark .menu-item.logout-item { color: #fb7185; }
         .menu-item.logout-item:hover { background: rgba(220,38,38,0.06); }
@@ -147,13 +155,13 @@
         .filter-chip { padding: 9px 6px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.15); font-size: 0.75rem; font-weight: 700; cursor: pointer; background: white; color: #475569; text-align: center; transition: background 0.2s, color 0.2s, transform 0.2s; }
         .dark .filter-chip { background: #1e293b; color: #94a3b8; border-color: rgba(148,163,184,0.1); }
         .filter-chip:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-        .filter-chip.active { background: #4f46e5; color: white; border-color: #4f46e5; }
-        .dark .filter-chip.active { background: #6366f1; color: white; border-color: #6366f1; }
+        .filter-chip.active { background: #c2410c; color: white; border-color: #c2410c; }
+        .dark .filter-chip.active { background: #ea580c; color: white; border-color: #ea580c; }
         /* === Popup option reusable colors (light mode: soft pastel, dark: unchanged) === */
-        .popup-opt-ivy { border-color: #c7d2fe; background: #eef2ff; color: #4338ca; }
-        .popup-opt-ivy.active { border-color: #818cf8; background: #e0e7ff; color: #3730a3; }
-        .dark .popup-opt-ivy { border-color: rgba(99,102,241,0.3); background: rgba(99,102,241,0.1); color: #a5b4fc; }
-        .dark .popup-opt-ivy.active { border-color: #6366f1; background: rgba(99,102,241,0.2); color: #c7d2fe; }
+        .popup-opt-ivy { border-color: #fed7aa; background: #eef2ff; color: #4338ca; }
+        .popup-opt-ivy.active { border-color: #818cf8; background: #e0e7ff; color: #9a3412; }
+        .dark .popup-opt-ivy { border-color: rgba(234, 88, 12,0.3); background: rgba(234, 88, 12,0.1); color: #a5b4fc; }
+        .dark .popup-opt-ivy.active { border-color: #ea580c; background: rgba(234, 88, 12,0.2); color: #fed7aa; }
         .popup-opt-herb { border-color: #a7f3d0; background: #ecfdf5; color: #065f46; }
         .popup-opt-herb.active { border-color: #34d399; background: #d1fae5; color: #047857; }
         .dark .popup-opt-herb { border-color: rgba(5,150,105,0.3); background: rgba(5,150,105,0.1); color: #6ee7b7; }
@@ -199,7 +207,7 @@
             .filter-row select { font-size: 0.7rem; padding: 5px 6px; }
             .shipment-row { padding: 14px 14px; }
             .shipment-row .main { font-size: 0.9rem; }
-            .shipment-row .field-label { font-size: 0.7rem; }
+            .shipment-row .field-label { font-size: 10px; }
         }
     </style>
 </head>
@@ -345,7 +353,7 @@
     </div>
 </div>
 
-<script src="assets/js/shipment-config.js"></script>
+<script src="assets/js/shipment-config.js?v=00FF6D6992"></script>
 <script>
     const BUILD = '6'; if (!window.location.href.includes('_t=')) { localStorage.setItem('rep-version', BUILD); window.location.href = window.location.href.split('?')[0] + '?_t=' + BUILD; }
     const supabaseClient = getSharedSupabaseClient();
@@ -477,6 +485,7 @@
         const isDark = document.body.classList.toggle('dark');
         document.getElementById('themeIcon').className = isDark ? 'fas fa-sun' : 'fas fa-moon';
         localStorage.setItem('shipment-theme', isDark ? 'dark' : 'light');
+        document.documentElement.classList.toggle('light-forced', !isDark);
         requestAnimationFrame(() => document.body.classList.remove('no-transitions'));
     }
 
@@ -516,7 +525,7 @@
             showCancelButton: true,
             confirmButtonText: 'حفظ',
             cancelButtonText: 'الغاء',
-            confirmButtonColor: '#6366f1',
+            confirmButtonColor: '#ea580c',
             customClass: {
                 popup: isDark ? 'swal-dark' : '',
                 title: isDark ? 'swal-title-dark' : ''
@@ -533,7 +542,7 @@
             if (!result.isConfirmed) return;
             const { name, phone, pass } = result.value;
             try {
-                const updates = { full_name: name, phone: phone };
+                const updates = { username: name, phone: phone };
                 if (pass) updates.password = pass;
                 const { error } = await supabaseClient
                     .from('users')
@@ -732,15 +741,22 @@
         filteredShipments = getDailyShipments().filter(s => {
             const sid = String(s.id);
             const sStatus = s['الحالة'] || '';
-            if (status === 'بحاجة لمتابعة') {
-                const followupStatuses = ['الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
-                if (!followupStatuses.includes(sStatus)) return false;
-                const dismissed = getFollowupsDismissed();
-                if (dismissed[sid]) return false;
-            } else if (status === 'مفضلة') {
-                if (!isFavorite(sid)) return false;
+            const favored = isFavorite(sid);
+
+            if (status === 'مفضلة') {
+                if (!favored) return false;
             } else {
-                if (status && sStatus !== status) return false;
+                /* اي شحنة مفضلة تُستبعد من جميع الفلاتر الاخري بما فيها "بحاجة لمتابعة" */
+                if (favored) return false;
+
+                if (status === 'بحاجة لمتابعة') {
+                    const followupStatuses = ['الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
+                    if (!followupStatuses.includes(sStatus)) return false;
+                    const dismissed = getFollowupsDismissed();
+                    if (dismissed[sid]) return false;
+                } else {
+                    if (status && sStatus !== status) return false;
+                }
             }
             if (zone && (s['الزون'] || '') !== zone) return false;
             if (sender && (s['الراسل'] || '') !== sender) return false;
@@ -754,6 +770,14 @@
             }
             return true;
         });
+
+        /* ترتيب خاص بفلتر "مفضلة" فقط: الاكثر تفضيلا حديثا يظهر اولا */
+        if (status === 'مفضلة') {
+            const fav = getFavorites();
+            filteredShipments = filteredShipments
+                .slice()
+                .sort((a, b) => (fav[String(b.id)] || 0) - (fav[String(a.id)] || 0));
+        }
 
         updateStats();
         renderShipments();
@@ -848,7 +872,7 @@
         container.innerHTML = filteredShipments.map((s, idx) => {
             const hideActions = ['تم', 'تعديل سعر', 'شحن', 'الغاء'].includes(s['الحالة'] || '');
             const isArchived = !!(s['ارشيف'] || '').trim();
-            const canFav = !isArchived && ['قيد التوصيل', 'مؤجل'].includes(s['الحالة'] || '');
+            const canFav = !isArchived;
             const sid = String(s.id);
             const isFav = isFavorite(sid);
             const isFollowupFilter = currentStatusFilter === 'بحاجة لمتابعة';
@@ -867,13 +891,13 @@
                     </div>
                     <div class="text-left">
                         <div class="main text-indigo-600 dark:text-indigo-400">${enNum(s['كود الشحنة'] || '-')}${isArchived ? ' <span class="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded-full">📦 مؤرشفة</span>' : ''}</div>
-                        <div class="sub ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? 'text-green-500' : s['الحالة'] === 'قيد التوصيل' ? 'text-amber-500' : s['الحالة'] === 'مؤجل' ? 'text-orange-500' : s['الحالة'] === 'الغاء' ? 'text-red-500' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? 'text-indigo-500' : ''}" style="color: ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? '#22c55e' : s['الحالة'] === 'قيد التوصيل' ? '#f59e0b' : s['الحالة'] === 'مؤجل' ? '#f97316' : s['الحالة'] === 'الغاء' ? '#ef4444' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? '#6366f1' : ''} !important">${s['الحالة'] || '-'}</div>
+                        <div class="sub status-badge ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? 'text-green-500' : s['الحالة'] === 'قيد التوصيل' ? 'text-amber-500' : s['الحالة'] === 'مؤجل' ? 'text-orange-500' : s['الحالة'] === 'الغاء' ? 'text-red-500' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? 'text-indigo-500' : ''}" style="color: ${s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? '#22c55e' : s['الحالة'] === 'قيد التوصيل' ? '#f59e0b' : s['الحالة'] === 'مؤجل' ? '#f97316' : s['الحالة'] === 'الغاء' ? '#ef4444' : s['الحالة'] === 'تعديل سعر' || s['الحالة'] === 'شحن' ? '#ea580c' : ''} !important">${s['الحالة'] || '-'}</div>
                     </div>
                 </div>
                 <div class="mt-2 text-sm text-slate-500 space-y-1.5">
-                    <div><i class="fas fa-box ml-1.5"></i><span class="field-label">المنتج:</span>${enNum(s['المنتج'] || '-')}</div>
+                    <div><i class="fas fa-box ml-1.5"></i><span class="field-label">المنتج:</span><span class="value-product">${enNum(s['المنتج'] || '-')}</span></div>
                     <div><i class="fas fa-map-pin ml-1.5"></i><span class="field-label">العنوان:</span><span class="detail-address">${enNum(s['العنوان'] || '-')}</span></div>
-                    <div><i class="fas fa-layer-group ml-1.5"></i><span class="field-label">الزون:</span>${enNum(s['الزون'] || '-')} <span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span>${enNum(s['الراسل'] || '-')}</span> <span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">${(['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة']||'') && s['المدفوع'] != null && s['المدفوع'] !== '') ? enNum(s['المدفوع']) : enNum(s['المبلغ'] || '0')}</span></span></div>
+                    <div><i class="fas fa-layer-group ml-1.5"></i><span class="field-label">الزون:</span>${enNum(s['الزون'] || '-')} <span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span><span class="value-sender">${enNum(s['الراسل'] || '-')}</span></span> <span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">${(['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة']||'') && s['المدفوع'] != null && s['المدفوع'] !== '') ? enNum(s['المدفوع']) : enNum(s['المبلغ'] || '0')}</span></span></div>
                 </div>
                 ${finalHideActions ? '' : `
                 <div class="action-btns${actionsHidden ? ' hidden-actions' : ''}">

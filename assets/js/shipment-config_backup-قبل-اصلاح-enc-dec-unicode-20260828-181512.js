@@ -1,29 +1,10 @@
 ﻿const _salt = '__supa__';
-const _enc = function(s) {
-    // UTF-8 لدعم العربية وأي يونيكود (btoa الأصلي يدعم Latin-1 فقط فيفشل مع العربية)
-    try {
-        var bin = '';
-        new TextEncoder().encode(_salt + s).forEach(function(b) { bin += String.fromCharCode(b); });
-        return btoa(bin);
-    } catch (e) {
-        return btoa(_salt + s); // Fallback للمتصفحات القديمة جداً بلا TextEncoder (نصوص ASCII فقط)
-    }
-};
-const _dec = function(s) {
-    try {
-        var bin = atob(s);
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i) & 0xff;
-        var decoded = new TextDecoder('utf-8').decode(bytes);
-        return decoded.indexOf(_salt) === 0 ? decoded.slice(_salt.length) : decoded;
-    } catch (e) {
-        return s; // بيانات تالفة/غير صحيحة => إرجاع القيمة كما هي (Fallback آمن، لا شاشة بيضاء)
-    }
-};
+const _enc = function(s) { return btoa(_salt + s); };
+const _dec = function(s) { try { var r = atob(s); return r.indexOf(_salt) === 0 ? r.slice(_salt.length) : r; } catch(e) { return s; } };
 
 const _b64 = {
-    URL: 'aHR0cHM6Ly9pb2R5b2hzc290dHRtYnJhcGdiay5zdXBhYmFzZS5jby8=',
-    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1sdlpIbHZhSE56YjNSMGRHMWljbUZ3WjJKcklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzT0RReU1EUTBOVFVzSW1WNGNDSTZNakE1T1RjNE1EUTFOWDAuU2huTzY1MVQzYlplb3Y4NnIxWHN5bVQtUTVKRTQ1NFNYX3lEMDFXUXZaNA=='
+    URL: 'aHR0cHM6Ly9ldnJxeGducXduZ29rdWtxZXJwcy5zdXBhYmFzZS5jbw==',
+    KEY: 'ZXlKaGJHY2lPaUpJVXpJMU5pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SnBjM01pT2lKemRYQmhZbUZ6WlNJc0luSmxaaUk2SW1WMmNuRjRaMjV4ZDI1bmIydDFhM0ZsY25Ceklpd2ljbTlzWlNJNkltRnViMjRpTENKcFlYUWlPakUzTnpZNU9ERTNOamdzSW1WNGNDSTZNakE1TWpVMU56YzJPSDAuMlltOTZENWo1aXVUWjQzcmR4bFprOEVNdTZQeWc0WGZYMk5PZE1ocXFyNA=='
 };
 function _d(s) { try { return atob(s); } catch { return s; } }
 

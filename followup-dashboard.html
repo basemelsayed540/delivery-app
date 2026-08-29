@@ -1,7 +1,33 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
+    <style>
+        .value-product { font-size: 14px; font-weight: 700; }
+        .value-sender { font-size: 12px; font-weight: 500; }
+        .value-notes { font-size: 11px; font-weight: 500; }
+        .value-amount { font-size: 16px; font-weight: 700; }
+        .status-badge { font-size: 14px; font-weight: 700; }
+        .popup-opt-ivy { border-color: #fed7aa; background: #eef2ff; color: #4338ca; }
+        .popup-opt-ivy.active { border-color: #818cf8; background: #e0e7ff; color: #9a3412; }
+        body.dark .popup-opt-ivy { border-color: rgba(234, 88, 12,0.3); background: rgba(234, 88, 12,0.1); color: #a5b4fc; }
+        body.dark .popup-opt-ivy.active { border-color: #ea580c; background: rgba(234, 88, 12,0.2); color: #fed7aa; }
+        .popup-opt-sun { border-color: #fed7aa; background: #fef3c7; color: #92400e; }
+        .popup-opt-sun.active { border-color: #f59e0b; background: #fde68a; color: #78350f; }
+        body.dark .popup-opt-sun { border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.1); color: #fcd34d; }
+        body.dark .popup-opt-sun.active { border-color: #f59e0b; background: rgba(245,158,11,0.2); color: #fef3c7; }
+        .popup-opt-air { border-color: #bae6fd; background: #f0f9ff; color: #0369a1; }
+        .popup-opt-air.active { border-color: #38bdf8; background: #e0f2fe; color: #0c4a6e; }
+        body.dark .popup-opt-air { border-color: rgba(56,189,248,0.3); background: rgba(56,189,248,0.1); color: #7dd3fc; }
+        body.dark .popup-opt-air.active { border-color: #38bdf8; background: rgba(56,189,248,0.2); color: #f0f9ff; }
+        .popup-opt-gold { border-color: #fde68a; background: #fffbeb; color: #92400e; }
+        .popup-opt-gold.active { border-color: #eab308; background: #fef9c3; color: #713f12; }
+        body.dark .popup-opt-gold { border-color: rgba(234,179,8,0.3); background: rgba(234,179,8,0.1); color: #fde047; }
+        body.dark .popup-opt-gold.active { border-color: #eab308; background: rgba(234,179,8,0.2); color: #fef9c3; }
+        [class*="popup-opt-"]:hover:not(.active) { filter: brightness(0.96); }
+        body.dark [class*="popup-opt-"]:hover:not(.active) { filter: brightness(1.15); }
+        .swal2-show,.swal2-hide{animation:none!important}.swal2-popup{transition:none!important}body.no-transitions, body.no-transitions * { transition: none !important; }
+    </style>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="color-scheme" content="light dark">
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self';">
@@ -12,8 +38,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="assets/js/shipment-config.js"></script>
-    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="assets/js/shipment-config.js?v=00FF6D6992"></script>
+    <link rel="stylesheet" href="assets/css/style.css?v=0653F38806">
     <style>
         body { background: #0f172a; color: #e2e8f0; font-family: 'Cairo', sans-serif; min-height: 100vh; transition: background .3s, color .3s; }
         body.light { background: #f8fafc; color: #1e293b; }
@@ -47,7 +73,7 @@
         body.dark .shipment-row .sub { color: #94a3b8; }
         .header-icon { color: #34d399; transition: color .3s; }
         body.light .header-icon { color: #059669; }
-        .field-label { font-size: .75rem; font-weight: 600; color: #94a3b8; margin-left: 2px; }
+        .field-label { font-size: 10px; font-weight: 400; color: #94a3b8; margin-left: 2px; }
         body.dark .field-label { color: #64748b; }
         .action-btn { min-width: 0; padding: 10px 6px; border-radius: 12px; border: 1px solid rgba(148,163,184,0.15); font-size: .8rem; font-weight: 700; text-align: center; cursor: pointer; background: white; color: #475569; letter-spacing: 0.01em; transition: all .2s, background .3s, border-color .3s; position: relative; }
         body.dark .action-btn { background: #1e293b; color: #94a3b8; border-color: rgba(148,163,184,0.1); }
@@ -78,12 +104,12 @@
         .shipment-dots-btn { cursor: pointer; padding: .2rem .4rem; border-radius: .5rem; color: #64748b; transition: background .2s, color .3s; }
         .shipment-dots-btn:hover { background: rgba(148,163,184,.15); }
         body.light .shipment-dots-btn:hover { background: rgba(0,0,0,.06); }
-        .customer-name { font-size: .9rem; color: #4f46e5; }
-        body.dark .customer-name { color: #818cf8; }
-        .detail-address { color: #0f766e; font-weight: 600; }
-        body.dark .detail-address { color: #5eead4; }
-        .shipment-amount { font-weight: 800; color: #047857; }
-        body.dark .shipment-amount { color: #34d399; }
+        .customer-name { font-size: 14px; font-weight: 700; color: #4f46e5; }
+        body.dark .customer-name { font-size: 14px; font-weight: 700; color: #818cf8; }
+        .detail-address { font-size: 12px; font-weight: 500; color: #0f766e; }
+        body.dark .detail-address { font-size: 12px; font-weight: 500; color: #5eead4; }
+        .shipment-amount { font-size: 16px; font-weight: 700; color: #047857; }
+        body.dark .shipment-amount { font-size: 16px; font-weight: 700; color: #34d399; }
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: rgba(148,163,184,.3); border-radius: 3px; transition: background .3s; }
@@ -91,12 +117,12 @@
         body.light .swal2-popup { background: #fff; color: #1e293b; }
         body.light .swal2-title { color: #1e293b; }
         body.light .swal2-html-container { color: #475569; }
-        body.light .swal2-cancel { color: #64748b !important; }
+        body.light .swal2-cancel { color: #64748b !important; background: #f1f5f9 !important; border-color: #e2e8f0 !important; }
         body.light .swal2-popup .popup-opt-herb,
         body.light .swal2-popup .popup-opt-air,
         body.light .swal2-popup .popup-opt-lavender { background: #f8fafc; border-color: #e2e8f0; color: #1e293b; }
         @media (max-width:640px) { .stat-card { padding: .25rem .2rem; } .stat-card .num { font-size: .75rem; } .stat-card .label { font-size: .45rem; } .filter-chip, .filter-chip-select { font-size: .55rem; padding: .15rem .35rem; min-width: 65px; } .search-input { font-size: .7rem; padding: .4rem .55rem; } .shipment-row { padding: .5rem; } }
-        .fav-btn { background: none; border: none; cursor: pointer; padding: 0; transition: all .2s; color: #94a3b8; line-height: 1; vertical-align: middle; font-size: 1rem; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+        .fav-btn { background: none; border: none; cursor: pointer; padding: 0; transition: all 0.2s; color: #94a3b8; line-height: 1; vertical-align: middle; font-size: 1.4rem; width: 40px; height: 40px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
         .fav-btn:hover { background: rgba(148,163,184,.1); }
         body.dark .fav-btn:hover { background: rgba(148,163,184,.15); }
         .fav-btn.active, .fav-btn.active i { color: #ef4444; }
@@ -160,7 +186,7 @@
     <div class="max-w-5xl mx-auto p-2 sm:p-3">
 
     <!-- Header -->
-    <div class="glass p-3 mb-3 flex items-center justify-between">
+    <div class="glass p-3 mb-3 flex items-center justify-between" style="position:relative;z-index:30">
         <div class="font-extrabold text-base flex items-center gap-2">
             لوحة المتابعة <span class="text-slate-400 text-sm font-normal mr-1" id="headerUserName"></span>
         </div>
@@ -256,10 +282,14 @@
         </div>
         <div class="flex gap-1 mb-2 overflow-x-auto pb-1 items-center">
             <button class="filter-chip active" id="chipArchive" data-placeholder-active="📁 نشطة" data-placeholder-archived="📁 مؤرشفة" onclick="toggleArchiveFilter()">📁 نشطة</button>
-            <select id="filterDaily" class="filter-chip-select" onchange="onDailyChange()"><option value="">📅 اليومية</option></select>
-            <select id="filterRep" class="filter-chip-select" onchange="scheduleFilter()"><option value="">👤 المندوب</option></select>
-            <select id="filterZone" class="filter-chip-select" onchange="scheduleFilter()"><option value="">📍 الزون</option></select>
-            <select id="filterSender" class="filter-chip-select" onchange="scheduleFilter()"><option value="">🏢 الراسل</option></select>
+            <select id="filterDaily" style="display:none" onchange="onDailyChange()"><option value="">📅 اليومية</option></select>
+            <select id="filterRep" style="display:none" onchange="scheduleFilter()"><option value="">👤 المندوب</option></select>
+            <select id="filterZone" style="display:none" onchange="scheduleFilter()"><option value="">📍 الزون</option></select>
+            <select id="filterSender" style="display:none" onchange="scheduleFilter()"><option value="">🏢 الراسل</option></select>
+            <button class="filter-chip" id="chipDaily" data-placeholder="📅 اليومية" onclick="openFilterChip('daily')">📅 اليومية</button>
+            <button class="filter-chip" id="chipRep" data-placeholder="👤 المندوب" onclick="openFilterChip('rep')">👤 المندوب</button>
+            <button class="filter-chip" id="chipZone" data-placeholder="📍 الزون" onclick="openFilterChip('zone')">📍 الزون</button>
+            <button class="filter-chip" id="chipSender" data-placeholder="🏢 الراسل" onclick="openFilterChip('sender')">🏢 الراسل</button>
         </div>
     </div>
 
@@ -289,8 +319,8 @@
     var renderedCount = 40;
     var PAGE_SIZE = 40;
     var filterTimer = null;
-    var filterData = { daily: [], zone: [], product: [], sender: [] };
-    var filterCounts = { daily: {}, status: {}, zone: {}, product: {}, sender: {} };
+    var filterData = { daily: [], zone: [], product: [], sender: [], rep: [] };
+    var filterCounts = { daily: {}, status: {}, zone: {}, product: {}, sender: {}, rep: {} };
     var followupStatuses = ['الغاء', 'مؤجل', 'تعديل سعر', 'شحن'];
     var currentFollowupFilter = '';
     var repArchiveFilter = localStorage.getItem('followupArchiveFilter') || 'نشطة';
@@ -367,14 +397,10 @@
             if (!result.isConfirmed) return;
             var name = result.value.name, phone = result.value.phone, pass = result.value.pass;
             try {
-                var updates = { full_name: name, phone: phone };
+                var updates = { username: name, phone: phone };
                 if (pass) updates.password = pass;
                 var res = await supabaseClient.from(CONFIG.TABLES.USERS).update(updates).eq('id', user.id);
                 if (res.error) throw res.error;
-                if (pass) {
-                    var authRes = await supabaseClient.auth.updateUser({ password: pass });
-                    if (authRes.error) throw authRes.error;
-                }
                 Object.assign(currentUser, { full_name: name, phone: phone });
                 localStorage.setItem('user', JSON.stringify(currentUser));
                 document.getElementById('headerUserName').textContent = name;
@@ -487,6 +513,9 @@
         } else if (phones.length > 1) {
             Swal.fire({
                 title: 'اختر رقم لإرسال المتابعة',
+              background: document.body.classList.contains('dark') ? '#0f172a' : '#fff',
+              color: document.body.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+              customClass: { popup: document.body.classList.contains('dark') ? 'swal-dark' : '' },
                 html: '<div class="grid grid-cols-1 gap-2">' + phones.map(function(p, i) {
                     return '<a href="https://api.whatsapp.com/send?phone=' + formatPhoneForWA(p) + '&text=' + msg + '" target="_blank" rel="noopener" class="block p-4 rounded-xl border-2 text-center font-bold text-lg no-underline cursor-pointer ' + (i === 0 ? 'popup-opt-herb' : 'popup-opt-lavender') + '" onclick="Swal.close()"><i class="fab fa-whatsapp ml-2"></i>' + p + '</a>';
                 }).join('') + '</div>',
@@ -652,8 +681,8 @@
             setOptions('filterZone', zones, zoneCounts);
             setOptions('filterSender', senders, senderCounts);
             setOptions('filterRep', reps, repCounts);
-            filterData = { daily: dailies, zone: zones, sender: senders };
-            filterCounts = { daily: dailyCounts, status: {}, zone: zoneCounts, sender: senderCounts };
+            filterData = { daily: dailies, zone: zones, sender: senders, rep: reps };
+            filterCounts = { daily: dailyCounts, status: {}, zone: zoneCounts, sender: senderCounts, rep: repCounts };
             updateChips();
             return;
         }
@@ -677,8 +706,8 @@
         setOptions('filterSender', senders, senderCounts);
         setOptions('filterRep', reps, repCounts);
 
-        filterData = { daily: dailies, zone: zones, sender: senders };
-        filterCounts = { daily: dailyCounts, status: statusCounts, zone: zoneCounts, sender: senderCounts };
+        filterData = { daily: dailies, zone: zones, sender: senders, rep: reps };
+        filterCounts = { daily: dailyCounts, status: statusCounts, zone: zoneCounts, sender: senderCounts, rep: repCounts };
         updateChips();
     }
 
@@ -695,16 +724,71 @@
         sel.value = current;
     }
 
-    function updateChips() {
+        function updateChips() {
+        var archivedDailies2 = new Set();
+        allDailyKeys.forEach(function(s) { var d = s['اليومية'] || ''; if (d && isArchivedVal(s)) archivedDailies2.add(d); });
+        var allDailyCount2 = new Set(allDailyKeys.map(function(s) { return s['اليومية'] || ''; }).filter(Boolean)).size;
+        var followupArchiveChipCount = repArchiveFilter === 'نشطة' ? (allDailyCount2 - archivedDailies2.size) : archivedDailies2.size;
         var archiveEl = document.getElementById('chipArchive');
         if (repArchiveFilter === 'نشطة') {
-            archiveEl.textContent = '📁 نشطة';
+            archiveEl.textContent = '📁 نشطة (' + followupArchiveChipCount + ')';
             archiveEl.classList.add('active');
         } else {
-            archiveEl.textContent = '📁 مؤرشفة';
+            archiveEl.textContent = '📁 مؤرشفة (' + followupArchiveChipCount + ')';
             archiveEl.classList.remove('active');
         }
+        ['daily','rep','zone','sender'].forEach(function(t) {
+            var selId = 'filter' + t.charAt(0).toUpperCase() + t.slice(1);
+            var chipId = 'chip' + t.charAt(0).toUpperCase() + t.slice(1);
+            var sel = document.getElementById(selId);
+            var chip = document.getElementById(chipId);
+            if (!sel || !chip) return;
+            var val = sel.value;
+            chip.textContent = val ? val : chip.dataset.placeholder;
+            chip.classList.toggle('active', !!val);
+        });
     }
+
+    function openFilterChip(type) {
+        var isDark = document.body.classList.contains('dark');
+        var items = filterData[type] || [];
+        var counts = filterCounts[type] || {};
+        var selId = 'filter' + type.charAt(0).toUpperCase() + type.slice(1);
+        var sel = document.getElementById(selId);
+        var current = sel.value;
+        var labels = { daily: 'اليومية', rep: 'المندوب', zone: 'الزون', sender: 'الراسل' };
+        var icons = { daily: '📅', rep: '👤', zone: '📍', sender: '🏢' };
+        var title = icons[type] + ' ' + labels[type];
+        var chipColors = { daily: 'popup-opt-ivy', rep: 'popup-opt-sun', zone: 'popup-opt-air', sender: 'popup-opt-gold' };
+        var archivedDailies = new Set();
+        allDailyKeys.forEach(function(s) {
+            var d = s['اليومية'] || '';
+            if (d && isArchivedVal(s)) archivedDailies.add(d);
+        });
+        var totalCount = items.reduce(function(sum, v) { return sum + (counts[v] || 0); }, 0);
+        var optsHtml = '<div class="grid grid-cols-1 gap-1.5">' +
+            '<div data-type="' + type + '" data-value="" onclick="selectFilterChip(this)" class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm ' + chipColors[type] + (!current ? ' active' : '') + '">الكل (' + totalCount + ')</div>';
+        items.forEach(function(v) {
+            var badge = (type === 'daily' && archivedDailies.has(v)) ? ' 📦' : '';
+            optsHtml += '<div data-type="' + type + '" data-value="' + v.replace(/"/g, '&quot;') + '" onclick="selectFilterChip(this)" class="p-2.5 rounded-xl border-2 cursor-pointer text-center font-bold text-sm ' + chipColors[type] + (current === v ? ' active' : '') + '">' + v + badge + ' (' + (counts[v] || 0) + ')</div>';
+        });
+        optsHtml += '</div>';
+        Swal.fire({ title: title, html: optsHtml, showCancelButton: true, cancelButtonText: 'الغاء', showConfirmButton: false, background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#0f172a', customClass: { popup: isDark ? 'swal-dark' : '' } });
+    }
+
+    window.selectFilterChip = function(el) {
+        var type = el.dataset.type;
+        var value = el.dataset.value;
+        var selId = 'filter' + type.charAt(0).toUpperCase() + type.slice(1);
+        document.getElementById(selId).value = value;
+        if (Swal.isVisible()) Swal.close();
+        updateChips();
+        if (type === 'daily') {
+            onDailyChange();
+        } else {
+            scheduleFilter();
+        }
+    };
 
     function toggleArchiveFilter() {
         repArchiveFilter = repArchiveFilter === 'نشطة' ? 'مؤرشفة' : 'نشطة';
@@ -939,7 +1023,7 @@
                     '</div>' +
                     '<div class="text-left">' +
                         '<div class="main text-indigo-600 dark:text-indigo-400">' + enNum(s['كود الشحنة'] || '-') + '</div>' +
-                        '<div class="sub" style="color:' + (
+                        '<div class="sub status-badge" style="color:' + (
                             s['الحالة'] === 'تم' || s['الحالة'] === 'تم التسليم' ? '#22c55e' :
                             s['الحالة'] === 'قيد التوصيل' ? '#f59e0b' :
                             s['الحالة'] === 'مؤجل' ? '#f97316' :
@@ -950,15 +1034,15 @@
                     '</div>' +
                 '</div>' +
                 '<div class="mt-2 text-sm text-slate-500 space-y-1.5">' +
-                    '<div><i class="fas fa-box ml-1.5"></i><span class="field-label">المنتج:</span>' + enNum(s['المنتج'] || '-') + '</div>' +
+                    '<div><i class="fas fa-box ml-1.5"></i><span class="field-label">المنتج:</span><span class="value-product">' + enNum(s['المنتج'] || '-') + '</span></div>' +
                     '<div><i class="fas fa-map-pin ml-1.5"></i><span class="field-label">العنوان:</span><span class="detail-address">' + enNum(s['العنوان'] || '-') + '</span></div>' +
                     '<div><i class="fas fa-layer-group ml-1.5"></i><span class="field-label">الزون:</span>' + enNum(s['الزون'] || '-') +
-                        '<span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span>' + enNum(s['الراسل'] || '-') + '</span>' +
-                        '<span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">' + (['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة'] || '') && s['المدفوع'] != null && s['المدفوع'] !== '' ? enNum(s['المدفوع']) : enNum(s['المبلغ'] || '0')) + '</span></span>' +
+                        '<span class="mr-4"><i class="fas fa-building ml-0.5"></i><span class="field-label">الراسل:</span><span class="value-sender">' + enNum(s['الراسل'] || '-') + '</span></span>' +
+                        '<span class="mr-4"><i class="fas fa-money-bill ml-0.5"></i><span class="field-label">المبلغ:</span><span class="shipment-amount">' + enNum(s['المبلغ'] || '0') + '</span>' + (['تم','تم التسليم','تعديل سعر','شحن'].includes(s['الحالة'] || '') && s['المدفوع'] != null && s['المدفوع'] !== '' ? '<span class="field-label mr-2">المدفوع:</span><span class="shipment-amount">' + enNum(s['المدفوع']) + '</span>' : '') + '</span></span>' +
                     '</div>' +
                     (s['المندوب'] ? '<div><i class="fas fa-user ml-1.5"></i><span class="field-label">المندوب:</span>' + enNum(s['المندوب']) + '</div>' : '') +
                 '</div>' +
-                (s['ملاحظات'] ? '<div class="mt-1.5 text-sm text-slate-500"><i class="fas fa-sticky-note ml-1.5"></i><span class="field-label">ملاحظات:</span>' + enNum(s['ملاحظات']) + '</div>' : '') +
+                (s['ملاحظات'] ? '<div class="mt-1.5 text-sm text-slate-500"><i class="fas fa-sticky-note ml-1.5"></i><span class="field-label">ملاحظات:</span><span class="value-notes">' + enNum(s['ملاحظات']) + '</span></div>' : '') +
                 '<div class="action-btns">' +
                     '<div class="row">' +
                         '<button class="action-btn call" onclick="event.stopPropagation();showPhonesDialog(\'' + enNum(s['الهاتف'] || '') + '\',\'' + enNum(s['هاتف بديل'] || '') + '\')"><i class="fas fa-phone ml-1"></i> اتصال' + (s['الهاتف'] && s['هاتف بديل'] ? '<span class="badge-num">2</span>' : '') + '</button>' +
@@ -1014,6 +1098,9 @@
         if (phones.length === 1) { window.location.href = 'tel:' + formatPhoneForCall(phones[0]); return; }
         Swal.fire({
             title: 'اختر رقم للاتصال',
+              background: document.body.classList.contains('dark') ? '#0f172a' : '#fff',
+              color: document.body.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+              customClass: { popup: document.body.classList.contains('dark') ? 'swal-dark' : '' },
             html: '<div class="grid grid-cols-1 gap-2">' + phones.map(function(p, i) {
                 return '<a href="tel:' + formatPhoneForCall(p) + '" class="block p-4 rounded-xl border-2 text-center font-bold text-lg no-underline ' + (i === 0 ? 'popup-opt-herb' : 'popup-opt-air') + '"><i class="fas fa-phone ml-2"></i>' + p + '</a>';
             }).join('') + '</div>',
@@ -1045,6 +1132,9 @@
         }
         Swal.fire({
             title: 'اختر رقم لإرسال الواتساب',
+              background: document.body.classList.contains('dark') ? '#0f172a' : '#fff',
+              color: document.body.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+              customClass: { popup: document.body.classList.contains('dark') ? 'swal-dark' : '' },
             html: '<div class="grid grid-cols-1 gap-2">' + phones.map(function(p, i) {
                 var num = formatPhoneForWA(p);
                 return '<a href="https://api.whatsapp.com/send?phone=' + num + '&text=' + msg + '" target="_blank" rel="noopener" class="block p-4 rounded-xl border-2 text-center font-bold text-lg no-underline cursor-pointer ' + (i === 0 ? 'popup-opt-herb' : 'popup-opt-lavender') + '" onclick="Swal.close()"><i class="fab fa-whatsapp ml-2"></i>' + p + '</a>';
@@ -1086,6 +1176,9 @@
         }
         Swal.fire({
             title: 'اختر رقم لإرسال المتابعة',
+              background: document.body.classList.contains('dark') ? '#0f172a' : '#fff',
+              color: document.body.classList.contains('dark') ? '#f8fafc' : '#0f172a',
+              customClass: { popup: document.body.classList.contains('dark') ? 'swal-dark' : '' },
             html: '<div class="grid grid-cols-1 gap-2">' + phones.map(function(p, i) {
                 var num = formatPhoneForWA(p);
                 return '<a href="https://api.whatsapp.com/send?phone=' + num + '&text=' + msg + '" target="_blank" rel="noopener" class="block p-4 rounded-xl border-2 text-center font-bold text-lg no-underline cursor-pointer ' + (i === 0 ? 'popup-opt-herb' : 'popup-opt-lavender') + '" onclick="Swal.close()"><i class="fab fa-whatsapp ml-2"></i>' + p + '</a>';
