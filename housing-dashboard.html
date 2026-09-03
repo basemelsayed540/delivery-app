@@ -8656,40 +8656,147 @@
                     });
 
                     // فحص التكرار داخل الملف نفسه: لو وُجد أكثر من صف بنفس كود الشحنة ضمن نفس اليومية
-                    // (كل الصفوف هنا بُنيت باليومية الموحّدة نفسها)، أوقف العملية واعرض تحذيرًا واضحًا
+                    // (كل الصفوف هنا بُنيت باليومية الموحّدة نفسها)، اعرض خيارات للمستخدم
+                    const dupRenameLog = [];
                     const seenInFileCodes = new Map();
                     updates.forEach(u => {
                         const c = String(u['كود الشحنة'] || '').trim();
                         seenInFileCodes.set(c, (seenInFileCodes.get(c) || 0) + 1);
                     });
-                    const dupInFile = [...seenInFileCodes.entries()].filter(([, n]) => n > 1);
+                    const dupInFile = [...seenInFileCodes.entries()]
+                        .filter(([, n]) => n > 1)
+                        .map(([code, count]) => ({ code, count }));
                     if (dupInFile.length > 0) {
-                        const dupSummary = dupInFile.slice(0, 10).map(([code, n]) => `${code} (${n} مرة)`).join('، ');
-                        const { isConfirmed: proceedWithDupes } = await Swal.fire({
+                        const { isConfirmed: generateDupes } = await Swal.fire({
                             icon: 'warning',
-                            title: 'أكواد مكررة داخل الملف نفسه',
+                            title: 'تم العثور على أكواد مكررة داخل الملف',
                             html: `
-                                <div class="text-start mb-2">
-                                    تم العثور على <b>${dupInFile.length}</b> كود مكرر داخل الملف نفسه (ضمن نفس اليومية "<b>${escapeHtml(normalizedUploadedDailyValue)}</b>").
-                                </div>
-                                <div class="text-start mb-2 small text-muted">مثال: ${escapeHtml(dupSummary)}…</div>
-                                <div class="text-start text-danger fw-bold small">
-                                    لا يمكن رفع صفّين بنفس "كود الشحنة" و"اليومية" معًا — سيتصادمان في قاعدة البيانات.
-                                    يرجى تصحيح الملف بحذف أو إعادة تسمية الأكواد المكررة، ثم إعادة المحاولة.
+                                <div class="text-start small">
+                                    <p>تم العثور على <b>${dupInFile.length}</b> كود مكرر داخل الملف نفسه ضمن يومية "<b>${escapeHtml(normalizedUploadedDailyValue)}</b>":</p>
+                                    <ul style="max-height:150px;overflow-y:auto;text-align:start;">
+                                        ${dupInFile.slice(0, 15).map(g => `<li>${escapeHtml(g.code)} (${g.count} مرة)</li>`).join('')}
+                                        ${dupInFile.length > 15 ? `<li>... و ${dupInFile.length - 15} كود آخر</li>` : ''}
+                                    </ul>
+                                    <p class="text-muted">الصف الأول من كل مجموعة سيبقى بكوده الأصلي، وسيتم توليد كود جديد فريد للنسخ الزائدة (بادئة DUP).</p>
                                 </div>
                             `,
                             showCancelButton: true,
-                            confirmButtonText: 'أعد المحاولة (الغاء)',
-                            cancelButtonText: 'تصحيح الملف لاحقاً',
+                            showDenyButton: true,
+                            confirmButtonText: 'توليد أكواد فريدة للمكرر والمتابعة',
+                            denyButtonText: 'إلغاء وتصحيح الملف يدويًا',
+                            cancelButtonText: 'إلغاء تمامًا',
                             confirmButtonColor: '#c2410c',
+                            denyButtonColor: '#64748b'
                         });
-                        window.housingWriteOperationActive = false;
-                        showLoading(false);
-                        Swal.close();
-                        if (proceedWithDupes) {
+
+                        if (!generateDupes) {
+                            window.housingWriteOperationActive = false;
+                            showLoading(false);
+                            Swal.close();
                             Swal.fire('تم الإلغاء', 'يرجى تصحيح الأكواد المكررة في الملف ثم إعادة رفعه.', 'info');
+                            return;
                         }
-                        return;
+
+                        // توليد أكواد فريدة للنسخ الزائدة فقط (أول ظهور لكل كود يبقى كما هو)
+                        const DUP_PREFIX = 'DUP';
+                        const DUP_TS = Date.now().toString(36).toUpperCase();
+                        let dupGeneratedCount = 0;
+                        const seenCounts = new Map();
+                        let generationAttempts = 0;
+                        const maxGenerationAttempts = 5;
+
+                        while (true) {
+                            generationAttempts++;
+                            dupRenameLog.length = 0;
+                            dupGeneratedCount = 0;
+                            seenCounts.clear();
+                            const usedCodes = new Set();
+                            updates.forEach(u => usedCodes.add(String(u['كود الشحنة'] || '').trim()));
+
+                            for (const item of updates) {
+                                const code = String(item['كود الشحنة'] || '').trim();
+                                const occ = seenCounts.get(code) || 0;
+                                seenCounts.set(code, occ + 1);
+                                if (occ === 0) continue; // أول ظهور: احتفظ بالكود الأصلي
+
+                                // نسخة زائدة: ولّد كودًا جديدًا فريدًا
+                                let newCode = '';
+                                for (let attempt = 0; attempt < maxGenerationAttempts; attempt++) {
+                                    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+                                    const candidate = `${DUP_PREFIX}${DUP_TS}${rand}${String(++dupGeneratedCount).padStart(3, '0')}`;
+                                    if (!usedCodes.has(candidate) && !seenCounts.has(candidate)) {
+                                        newCode = candidate;
+                                        break;
+                                    }
+                                }
+                                if (!newCode) {
+                                    window.housingWriteOperationActive = false;
+                                    showLoading(false);
+                                    Swal.close();
+                                    Swal.fire('خطأ في التوليد', `تعذّر توليد كود فريد للكود المكرر "${code}" بعد عدة محاولات. يرجى تصحيح الملف يدويًا.`, 'error');
+                                    return;
+                                }
+                                usedCodes.add(newCode);
+                                item['كود الشحنة'] = newCode;
+                                dupRenameLog.push({
+                                    originalCode: code,
+                                    newCode,
+                                    customerName: String(item['اسم العميل'] ?? item['اسم_العميل'] ?? '-'),
+                                    phone: String(item['الهاتف'] ?? '-')
+                                });
+                            }
+
+                            // إعادة فحص التكرار على كامل المصفوفة: تأكيد الصفر قبل المتابعة
+                            const recheck = new Map();
+                            updates.forEach(u => {
+                                const c = String(u['كود الشحنة'] || '').trim();
+                                recheck.set(c, (recheck.get(c) || 0) + 1);
+                            });
+                            const stillDup = [...recheck.entries()].some(([, n]) => n > 1);
+                            if (!stillDup) break;
+                            if (generationAttempts >= maxGenerationAttempts) {
+                                window.housingWriteOperationActive = false;
+                                showLoading(false);
+                                Swal.close();
+                                Swal.fire('خطأ في التوليد', 'تعذّر توليد أكواد فريدة خالية من التصادم بعد عدة محاولات. يرجى تصحيح الملف يدويًا.', 'error');
+                                return;
+                            }
+                        }
+
+                        // تقرير مراجعة الأكواد الجديدة قبل الرفع (إلزامي — لا تخطيها)
+                        const renamedRowsPreview = dupRenameLog.map(r => `
+                            <tr>
+                                <td>${escapeHtml(r.originalCode)}</td>
+                                <td>${escapeHtml(r.newCode)}</td>
+                                <td>${escapeHtml(r.customerName)}</td>
+                                <td>${escapeHtml(r.phone)}</td>
+                            </tr>
+                        `).join('');
+
+                        const { isConfirmed: confirmRename } = await Swal.fire({
+                            title: 'مراجعة الأكواد الجديدة قبل الرفع',
+                            html: `
+                                <div class="text-start small mb-2">تم توليد كود جديد لـ <b>${dupRenameLog.length}</b> صف (النسخ المكررة). راجعها قبل المتابعة:</div>
+                                <div class="table-responsive" style="max-height:250px;">
+                                    <table class="table table-sm table-bordered text-center small">
+                                        <thead><tr><th>الكود الأصلي</th><th>الكود الجديد</th><th>العميل</th><th>الهاتف</th></tr></thead>
+                                        <tbody>${renamedRowsPreview}</tbody>
+                                    </table>
+                                </div>
+                            `,
+                            icon: 'info',
+                            showCancelButton: true,
+                            confirmButtonText: 'تأكيد ومتابعة الرفع',
+                            cancelButtonText: 'إلغاء',
+                            confirmButtonColor: '#c2410c',
+                            width: '650px'
+                        });
+                        if (!confirmRename) {
+                            window.housingWriteOperationActive = false;
+                            showLoading(false);
+                            Swal.close();
+                            return;
+                        }
                     }
 
 
@@ -8787,6 +8894,9 @@
                             : `تم تحديث ${successCount} شحنة بنجاح من إجمالي ${updates.length} في الملف.`;
                         if (skippedSchemaField) {
                             resultMessage += `\n\nتم تجاهل العمود "${skippedSchemaField}" أثناء الرفع لأنه غير موجود في قاعدة البيانات الحالية، وتم استكمال تحديث باقي البيانات بنجاح.`;
+                        }
+                        if (dupRenameLog.length > 0) {
+                            resultMessage += `\n\nتم توليد كود جديد تلقائيًا لـ ${dupRenameLog.length} شحنة كانت مكررة الكود داخل الملف (بادئة الكود الجديد: DUP).`;
                         }
                         if (successCount < updates.length && lastError) {
                             if (lastFriendlyError) {
