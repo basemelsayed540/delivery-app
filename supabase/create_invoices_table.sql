@@ -36,8 +36,13 @@ create table public.invoices (
   constraint invoices_pkey primary key (id)
 ) TABLESPACE pg_default;
 
--- فهرس فريد على كود الشحنة
-create unique INDEX IF not exists idx_invoices_code on public.invoices using btree ("كود الشحنة") TABLESPACE pg_default;
+-- فهرس فريد مركّب على (كود الشحنة + اليومية)
+-- القديم كان فريدًا على "كود الشحنة" وحده (idx_invoices_code) مما كان يدمج شحنتين
+-- بنفس الكود من يوميتين مختلفتين في صف واحد. الفهرس الجديد يجعل الفريد الحقيقي هو
+-- الزوج (كود الشحنة, اليومية) — يسمح بتكرار الكود بين يوميات مختلفة،
+-- ويرفض فقط التكرار ضمن نفس اليومية.
+create unique index if not exists idx_invoices_code_daily
+    on public.invoices using btree ("كود الشحنة", "اليومية") TABLESPACE pg_default;
 
 -- ============================================================
 -- الوصول (RLS)

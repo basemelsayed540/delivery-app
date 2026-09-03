@@ -8655,6 +8655,44 @@
                         item['اليومية'] = normalizedUploadedDailyValue;
                     });
 
+                    // فحص التكرار داخل الملف نفسه: لو وُجد أكثر من صف بنفس كود الشحنة ضمن نفس اليومية
+                    // (كل الصفوف هنا بُنيت باليومية الموحّدة نفسها)، أوقف العملية واعرض تحذيرًا واضحًا
+                    const seenInFileCodes = new Map();
+                    updates.forEach(u => {
+                        const c = String(u['كود الشحنة'] || '').trim();
+                        seenInFileCodes.set(c, (seenInFileCodes.get(c) || 0) + 1);
+                    });
+                    const dupInFile = [...seenInFileCodes.entries()].filter(([, n]) => n > 1);
+                    if (dupInFile.length > 0) {
+                        const dupSummary = dupInFile.slice(0, 10).map(([code, n]) => `${code} (${n} مرة)`).join('، ');
+                        const { isConfirmed: proceedWithDupes } = await Swal.fire({
+                            icon: 'warning',
+                            title: 'أكواد مكررة داخل الملف نفسه',
+                            html: `
+                                <div class="text-start mb-2">
+                                    تم العثور على <b>${dupInFile.length}</b> كود مكرر داخل الملف نفسه (ضمن نفس اليومية "<b>${escapeHtml(normalizedUploadedDailyValue)}</b>").
+                                </div>
+                                <div class="text-start mb-2 small text-muted">مثال: ${escapeHtml(dupSummary)}…</div>
+                                <div class="text-start text-danger fw-bold small">
+                                    لا يمكن رفع صفّين بنفس "كود الشحنة" و"اليومية" معًا — سيتصادمان في قاعدة البيانات.
+                                    يرجى تصحيح الملف بحذف أو إعادة تسمية الأكواد المكررة، ثم إعادة المحاولة.
+                                </div>
+                            `,
+                            showCancelButton: true,
+                            confirmButtonText: 'أعد المحاولة (الغاء)',
+                            cancelButtonText: 'تصحيح الملف لاحقاً',
+                            confirmButtonColor: '#c2410c',
+                        });
+                        window.housingWriteOperationActive = false;
+                        showLoading(false);
+                        Swal.close();
+                        if (proceedWithDupes) {
+                            Swal.fire('تم الإلغاء', 'يرجى تصحيح الأكواد المكررة في الملف ثم إعادة رفعه.', 'info');
+                        }
+                        return;
+                    }
+
+
                     const totalImportRows = updates.length;
                     const totalImportBatches = Math.ceil(totalImportRows / 100);
                     let importCurrentBatch = 0;
@@ -8685,6 +8723,7 @@
 
                     let successCount = 0;
                     let lastError = null;
+                    let lastFriendlyError = '';
                     let skippedSchemaField = '';
                     const chunkSize = 100;
                     
@@ -8700,7 +8739,7 @@
 
                             let res = await supabaseClient
                                 .from(CONFIG.TABLES.SHIPMENTS)
-                                .upsert(payloads, { onConflict: 'كود الشحنة' });
+                                .upsert(payloads, { onConflict: 'كود الشحنة,اليومية' });
 
                             if (res.error) {
                                 const missingField = extractMissingSchemaColumn(res.error.message);
@@ -8714,13 +8753,20 @@
                                     });
                                     res = await supabaseClient
                                         .from(CONFIG.TABLES.SHIPMENTS)
-                                        .upsert(filteredPayloads, { onConflict: 'كود الشحنة' });
+                                        .upsert(filteredPayloads, { onConflict: 'كود الشحنة,اليومية' });
                                 }
                             }
 
                             if (res.error) {
                                 lastError = res.error.message;
                                 console.error("Chunk upsert error:", res.error);
+                                // رسالة صريحة عند رفض تكرار (كود + يومية) موجود بالفعل في القاعدة
+                                const isUniqueViolation =
+                                    res.error.code === '23505' ||
+                                    /duplicate key|unique constraint|23000/i.test(String(res.error.message || ''));
+                                if (isUniqueViolation) {
+                                    lastFriendlyError = `بعض الصفوف في الملف تحمل "كود الشحنة" مُستخدمًا بالفعل ضمن نفس اليومية ("${normalizedUploadedDailyValue}") في قاعدة البيانات. الكود والنفس اليومية يُكرران شحنة موجودة — هل تقصد تحديث نفس الشحنة، أم أنه كود جديد بالخطأ؟ راجع الصفوف المتعارضة قبل الرفع.`;
+                                }
                             } else {
                                 successCount += payloads.length;
                             }
@@ -8743,7 +8789,11 @@
                             resultMessage += `\n\nتم تجاهل العمود "${skippedSchemaField}" أثناء الرفع لأنه غير موجود في قاعدة البيانات الحالية، وتم استكمال تحديث باقي البيانات بنجاح.`;
                         }
                         if (successCount < updates.length && lastError) {
-                            resultMessage += `\n\nسبب الخطأ التقني: ${lastError}`;
+                            if (lastFriendlyError) {
+                                resultMessage += `\n\n${lastFriendlyError}`;
+                            } else {
+                                resultMessage += `\n\nسبب الخطأ التقني: ${lastError}`;
+                            }
                         }
 
                         Swal.fire({
